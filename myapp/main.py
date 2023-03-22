@@ -1,4 +1,3 @@
-
 from fastapi import FastAPI
 from myapp.routers import users, bills, creditors, payments
 
