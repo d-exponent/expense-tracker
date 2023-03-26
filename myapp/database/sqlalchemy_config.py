@@ -1,10 +1,6 @@
-from decouple import config
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
-
-user = config("DB_USERNAME")
-password = config("DB_PASSWORD")
-db = "expense-tracker-test"
+from myapp.database.config import user, password, db
 
 
 engine = create_engine(f"postgresql://{user}:{password}@localhost:5432/{db}")

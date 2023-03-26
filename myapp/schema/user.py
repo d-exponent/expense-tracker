@@ -1,16 +1,7 @@
 from pydantic import BaseModel, EmailStr, constr
 from datetime import datetime
-from myapp.schema.bill import Bill
-from myapp.schema.payment import Payment
-
-
-class UserBase(BaseModel):
-    id: int = None
-    first_name: constr(max_length=40, strip_whitespace=True)
-    last_name: constr(max_length=40, strip_whitespace=True)
-    phone: constr(max_length=25, strip_whitespace=True)
-    email: EmailStr | None
-    image: str = None
+from myapp.schema.bill import BillOut
+from myapp.schema.payment import PaymentOut
 
 
 """
@@ -24,22 +15,29 @@ USER PASSWORD REGEX REQUIREMENTS
 password_reg = "^(?=(.*[A-Z]){1,})(?=(.*[0-9]){1,})(?=(.*[!@#$%^&*()\-__+.]){1,}).{8,}$"
 
 
-class UserCreate(UserBase):
+class UserCreate(BaseModel):
+    first_name: constr(max_length=40, strip_whitespace=True)
+    middle_name: constr(max_length=40, strip_whitespace=True) = None
+    last_name: constr(max_length=40, strip_whitespace=True)
+    phone: constr(max_length=25, strip_whitespace=True)
+    email: EmailStr | None
+    image: str = None
     password: constr(regex=password_reg) = None
 
 
-class UserOut(UserBase):
-    bills: list[Bill] = []
-    payments: list[Payment] = []
+class UserOut(UserCreate):
+    id: int
+    bills: list[BillOut] = []
+    payments: list[PaymentOut] = []
 
     class Config:
         orm_mode = True
 
 
-class UserComplete(UserOut):
+class UserAllInfo(UserOut):
     is_active: bool = True
-    created_at: datetime = None
-    updated_at: datetime = None
+    created_at: datetime
+    updated_at: datetime
     password_modified_at: datetime = None
     password_reset_token: str = None
     password_reset_token_expires_at: datetime = None

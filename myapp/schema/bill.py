@@ -1,19 +1,27 @@
 from pydantic import BaseModel
+from datetime import datetime
 
 
-class BillBase(BaseModel):
+class BillCreate(BaseModel):
     description: str = None
     starting_amount: float
-    paid_amount: float = 0.00
-    current_balance: float = 0
-    paid: bool
-
-
-class BillCreate(BillBase):
-    pass
-
-
-class Bill(BillBase):
-    id: int
     user_id: int
     creditor_id: int
+    paid_amount: float = 0.00
+
+
+class BillOut(BillCreate):
+    id: int = None
+    paid: bool = None
+    current_balance: float = 0.00
+
+    class Config:
+        orm_mode = True
+
+
+class BillALlInfo(BillOut):
+    created_at: datetime = None
+    updated_at: datetime = None
+
+    class Config:
+        orm_mode = True

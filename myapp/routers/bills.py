@@ -1,9 +1,12 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Body
+from myapp.crud.bills import BillCrud
+from myapp.schema.bill import BillCreate
 
 
-router = APIRouter()
+router = APIRouter(prefix="/bills", tags=["bills", "debts"])
 
 
-@router.get("/bills", tags=["bills"])
-def get_users():
+@router.post("/")
+def make_bill(bill: BillCreate = Body()):
+    BillCrud.create(bill=bill)
     return "Bills Routes"

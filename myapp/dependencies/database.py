@@ -1,4 +1,4 @@
-from myapp.database import SessionLocal
+from myapp.database.sqlalchemy_config import SessionLocal
 
 
 def db_dependency():

@@ -2,11 +2,20 @@ from pydantic import BaseModel
 from datetime import datetime
 
 
-class PaymentBase(BaseModel):
+class PaymentCreate(BaseModel):
+    bill_id: int
     amount: float
+
+
+class PaymentOut(PaymentCreate):
+    id: int
+
+    class Config:
+        orm_mode = True
+
+
+class PaymentAllInfo(PaymentOut):
     created_at: datetime
 
-
-class Payment(PaymentBase):
-    id: int
-    bill_id: int
+    class Config:
+        orm_mode = True
