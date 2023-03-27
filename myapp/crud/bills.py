@@ -1,9 +1,16 @@
-from myapp.crud.base_crud import Crud
+from psycopg2 import connect
 
-# from sqlalchemy.orm import Session
+from myapp.crud.base_crud import Crud
+from myapp.database.config import user, password, db
 from myapp.models import Bill as BillOrm
-from myapp.schema.bill import BillCreate
-from myapp.database.psycopg_config import connection
+from myapp.schema.bill import BillCreate, CustomBillOut
+from myapp.crud.utils.bills_utils import (
+    BILLTYPES,
+    map_record_to_dict,
+    handle_exceptions,
+    TransactionQueries,
+    BillTransactionError,  # Just so the bill router can access from this module
+)
 
 
 class BillCrud(Crud):
@@ -11,44 +18,49 @@ class BillCrud(Crud):
 
     @classmethod
     def create(cls, bill: BillCreate):
-        new_bill_params = (
-            bill.user_id,
-            bill.creditor_id,
-            bill.starting_amount,
-            bill.paid_amount,
-            bill.description,
-        )
+        bill_data_dict: dict[str, BILLTYPES] = {
+            "user_id": bill.user_id,
+            "creditor_id": bill.creditor_id,
+            "starting_amount": bill.starting_amount,
+            "paid_amount": bill.paid_amount,
+            "description": bill.description,
+        }
 
         # Start the bill payment transaction
         try:
+            connection = connect(
+                database=db, user=user, password=password, port="5432", host="localhost"
+            )
             connection.autocommit = False
             cursor = connection.cursor()
 
-            # Create a new Bill
-            insert_bill = """
-                        INSERT INTO bills (user_id, creditor_id, starting_amount, paid_amount, description)
-                        VALUES (%s, %s, %s, %s, %s);
-                    """
-            cursor.execute(insert_bill, new_bill_params)
+            cursor.execute(TransactionQueries.insert_bill, bill_data_dict)
 
-            # Get the bill information for new Payment
-            get_bill_query = (
-                "Select id, paid_amount from bills Order by created_at desc limit 1;"
+            # Get the new bill information
+            cursor.execute(TransactionQueries.get_new_bill)
+            new_bill_record = cursor.fetchone()
+
+            # Insert a new payment with the new bill information
+            cursor.execute(
+                TransactionQueries.insert_payment,
+                {"bill_id": new_bill_record[0], "amount": new_bill_record[1]},
             )
-            cursor.execute(get_bill_query)
-            new_bill = cursor.fetchone()
-            bill_id = new_bill[0]
-            amount = new_bill[1]
 
-            # Insert a new payment for this bill
-            insert_payment_query = (
-                " INSERT INTO payments (bill_id, amount) VALUES (%s,%s);"
-            )
-            cursor.execute(insert_payment_query, (bill_id, amount))
-            connection.commit()
+            # Lets return some information to the user with a join
+            join_params = {
+                "user_id": bill_data_dict["user_id"],
+                "creditor_id": bill_data_dict["creditor_id"],
+                "bill_id": new_bill_record[0],
+            }
 
-        except Exception:
+            cursor.execute(TransactionQueries.get_bills_user_creditor_join, join_params)
+            joined_data = cursor.fetchone()
+        except Exception as e:
             connection.rollback()
-        finally:
+            handle_exceptions(str(e))
+        else:
             cursor.close()
+            connection.commit()
+            return CustomBillOut(**map_record_to_dict(joined_data))
+        finally:
             connection.close()

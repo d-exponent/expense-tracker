@@ -1,11 +1,12 @@
 from fastapi import APIRouter, HTTPException, Body, Depends, Path, Query
 from sqlalchemy.exc import IntegrityError, DataError
+from sqlalchemy.orm import Session
+
 from myapp.schema.creditor import CreditorCreate, CreditorOut
 from myapp.crud.creditors import CreditorCrud
 from myapp.models import Base
-from myapp.dependencies import database, error_utils
+from myapp.utils import database, error_utils
 from myapp.database.sqlalchemy_config import engine
-from sqlalchemy.orm import Session
 
 
 Base.metadata.create_all(bind=engine)
@@ -67,7 +68,7 @@ def create_creditor(
         handle_data_error(str(error))
 
     except Exception as error:
-        print('🧰🧰🧰🧰 Operator', str(error))
+        print("🧰🧰🧰🧰 Operator", str(error))
         error_utils.raise_server_error()
     else:
         return users

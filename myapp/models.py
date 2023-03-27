@@ -1,7 +1,8 @@
-from sqlalchemy.orm import relationship
+from myapp.database.sqlalchemy_config import Base
+
+# from sqlalchemy.orm import relationship
 from sqlalchemy.schema import Computed
 from sqlalchemy.sql.expression import text, func
-from myapp.database.sqlalchemy_config import Base
 from sqlalchemy import (
     Boolean,
     Column,
@@ -27,7 +28,7 @@ class User(Base):
 
     id = Column(Integer, primary_key=True)
     first_name = Column(String(length=40), nullable=False)
-    middle_name = Column(String(length=40))
+    # middle_name = Column(String(length=40))
     last_name = Column(String(length=40), nullable=False)
     phone = Column(String(25), unique=True, nullable=False)
     email = Column(String(70), unique=True)
@@ -104,6 +105,11 @@ class Creditor(Base):
 
 class Bill(Base):
     __tablename__ = "bills"
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id", "creditor_id", name="bills_user_id_creditor_id_key"
+        ),
+    )
 
     id = Column(Integer, primary_key=True)
     user_id = Column(
@@ -114,7 +120,7 @@ class Bill(Base):
         ForeignKey("creditors.id", ondelete="CASCADE"),
         nullable=False,
     )
-    description = Column(String)
+    description = Column(String, nullable=False)
     starting_amount = Column(Numeric(10, 2), nullable=False)
     paid_amount = Column(Numeric(10, 2), server_default=text("0.00"))
     current_balance = Column(Numeric(10, 2), Computed("paid_amount - starting_amount"))

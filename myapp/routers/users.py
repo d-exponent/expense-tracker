@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
-from myapp.dependencies import error_utils, error_messages
+
+from myapp.utils import error_utils, error_messages
 from myapp.models import Base
-from myapp.dependencies import database
+from myapp.utils import database
 from myapp.database.sqlalchemy_config import engine
 from myapp.schema.user import UserCreate, UserOut
 from myapp.crud.users import UserCrud
@@ -13,11 +14,6 @@ Base.metadata.create_all(bind=engine)
 
 db_instance = database.db_dependency
 error_msgs = error_messages.UserErrorMessages
-
-
-def handle_data_error(error_message):
-    # TODO: Implement better handling upto testing
-    raise HTTPException(status_code=400, detail="Invalid data type for some feilds ")
 
 
 def handle_integrity_error(error_message):
@@ -45,7 +41,6 @@ def create_users(user: UserCreate, db: Session = Depends(db_instance)):
     except IntegrityError as error:
         handle_integrity_error(str(error))
     except Exception:
-        error_messages.dev_error_tracer("Unhandled exception in create users")
         error_utils.raise_server_error()
 
 
@@ -56,12 +51,15 @@ def get_all_users(
     skip: int = Query(default=0),
     limit: int = Query(default=100),
 ):
-    users = UserCrud.get_records(db, skip, limit)
-
-    if len(users) == 0:
-        raise HTTPException(status_code=404, detail=error_msgs.no_users)
-
-    return users
+    try:
+        users = UserCrud.get_records(db=db, skip=skip, limit=limit)
+    except Exception as e:
+        print("🧰🧰Error: ", str(e))
+        error_utils.raise_server_error()
+    else:
+        if len(users) == 0:
+            raise HTTPException(status_code=404, detail=error_msgs.no_users)
+        return users
 
 
 user_id_description = "If you don't have the users id, provide any integer less than one and the users phone number or email adress via a query"

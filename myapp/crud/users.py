@@ -1,8 +1,17 @@
 from sqlalchemy.orm import Session
+from decouple import config
+from bcrypt import gensalt, hashpw
+
 from myapp.schema.user import UserCreate
 from myapp.crud.base_crud import Crud
 from myapp.models import User as UserOrm
-from myapp.crud.utils import hash
+
+
+def hash(plaintext) -> str:
+    encoded_text = plaintext.encode(config("ENCODE_FMT"))
+    salt_rounds = int(config("SALT_ROUNDS"))
+    hashed_text = hashpw(encoded_text, gensalt(salt_rounds))
+    return hashed_text
 
 
 class UserCrud(Crud):

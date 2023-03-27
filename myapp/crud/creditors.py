@@ -1,8 +1,18 @@
+from sqlalchemy.orm import Session
+
 from myapp.crud.base_crud import Crud
 from myapp.models import Creditor as CreditorOrm
 from myapp.schema.creditor import CreditorCreate
-from sqlalchemy.orm import Session
-from myapp.crud.utils import to_title_case
+
+
+def to_title_case(str) -> str:
+    words = str.split(" ")
+
+    if len(words) == 1:
+        return words[0].title()
+
+    titled_words = [word.title() for word in words]
+    return " ".join(titled_words)
 
 
 class CreditorCrud(Crud):
