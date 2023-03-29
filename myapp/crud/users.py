@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from decouple import config
 from bcrypt import gensalt, hashpw
 
-from myapp.schema.user import UserCreate
+from myapp.schema.user import UserCreate, UserAllInfo
 from myapp.crud.base_crud import Crud
 from myapp.models import User as UserOrm
 
@@ -29,12 +29,14 @@ class UserCrud(Crud):
         return user
 
     @classmethod
-    def create(cls, db: Session, user: UserCreate):
+    def create(cls, db: Session, user: UserCreate) -> UserAllInfo:
         processed_user = cls.__process(user)
         new_user = cls.orm_model(**processed_user.dict())
+
         db.add(new_user)
         db.commit()
         db.refresh(new_user)
+
         return new_user
 
     @classmethod
