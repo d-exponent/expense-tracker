@@ -7,11 +7,9 @@ from myapp.crud.base_crud import Crud
 from myapp.models import User as UserOrm
 
 
-def hash(plaintext) -> str:
-    encoded_text = plaintext.encode(config("ENCODE_FMT"))
-    salt_rounds = int(config("SALT_ROUNDS"))
-    hashed_text = hashpw(encoded_text, gensalt(salt_rounds))
-    return hashed_text
+def hash_password(password: str) -> bytes:
+    password_bytes = password.encode(config("ENCODE_FMT"))
+    return hashpw(password_bytes, gensalt())
 
 
 class UserCrud(Crud):
@@ -24,7 +22,10 @@ class UserCrud(Crud):
         user.last_name = user.last_name.title()
 
         if user.password:
-            user.password = hash(user.password)
+            user.password = hash_password(user.password)
+
+        if user.email:
+            user.email = user.email.lower()
 
         return user
 
@@ -45,4 +46,6 @@ class UserCrud(Crud):
 
     @classmethod
     def get_user_by_email(cls, db: Session, email: str):
-        return db.query(cls.orm_model).filter(cls.orm_model.email == email).first()
+        return (
+            db.query(cls.orm_model).filter(cls.orm_model.email == email.lower()).first()
+        )

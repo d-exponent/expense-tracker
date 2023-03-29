@@ -1,3 +1,4 @@
+from bcrypt import checkpw
 import bcrypt
 from decouple import config
 from typing import Annotated
@@ -10,7 +11,6 @@ from fastapi import Depends, HTTPException, status
 
 from myapp.crud.users import UserCrud
 from myapp.schema.user import UserAllInfo
-from myapp.utils.database import db_dependency
 
 
 JWT_SECRET = config("JWT_SECRET")
@@ -28,9 +28,14 @@ class UserLogin(BaseModel):
     password: str
 
 
-class Payload(UserLogin):
+class TokenPayload(UserLogin):
     exp: int | float
     iat: int | float
+
+
+class UserData(BaseModel):
+    user: UserAllInfo
+    plain_password = str
 
 
 def raise_credentials_exception(
@@ -44,66 +49,99 @@ def raise_credentials_exception(
     )
 
 
+def handle_jwt_error(error_message):
+    if "Signature has expired" in error_message:
+        raise_credentials_exception(detail=EXPIRED_JWT_MESSAGE)
+
+    raise_credentials_exception()
+
+
 oauth_scheme = OAuth2PasswordBearer(tokenUrl="")
 
 
-def create_access_token(payload: dict, expires_delta: timedelta | None) -> str:
-    to_encode = payload.copy()
+def create_access_token(data: dict) -> str:
+    """Create a new access token"""
 
-    if expires_delta:
-        expire_utc_time = CURRENT_UTC_TIME + expires_delta
-    else:
-        expire_utc_time = CURRENT_UTC_TIME + timedelta(days=JWT_EXPIRES_AFTER)
+    to_encode = data.copy()
 
+    expire_utc_time = CURRENT_UTC_TIME + timedelta(days=int(JWT_EXPIRES_AFTER))
     to_encode.update({"exp": expire_utc_time, "iat": CURRENT_UTC_TIME})
     access_token = jwt.encode(to_encode, JWT_SECRET, algorithm=JWT_ALGORITYHM)
 
     return access_token
 
 
-def decode_access_token(token: Annotated[str, Depends(oauth_scheme)]) -> Payload:
-    try:
-        payload = jwt.decode(token, JWT_SECRET, algorithms=JWT_ALGORITYHM)
-    except JWTError as e:
-        if "Signature has expired" in str(e):
-            raise_credentials_exception(detail=EXPIRED_JWT_MESSAGE)
+def decode_access_token(access_token: str) -> dict:
+    """Return a decoded access token
 
-        raise_credentials_exception()
+    Throws exception if access token is not valid or Expired
+    """
+    try:
+        token_data = jwt.decode(access_token, JWT_SECRET, algorithms=JWT_ALGORITYHM)
+
+    except JWTError as e:
+        handle_jwt_error(str(e))
     else:
-        return Payload(**payload.dict())
+        return token_data
+
+
+def get_token_payload(access_token: Annotated[str, Depends(oauth_scheme)]):
+    """Returns a token payload
+
+    Extracts access token from Authorization header
+    """
+
+    token_data = decode_access_token(access_token)
+
+    return TokenPayload(**token_data)
+
+
+def get_user(db: Session, user_data: UserLogin | TokenPayload) -> UserAllInfo:
+    """
+    Returns a User object from the database or None if the user is not found
+    """
+
+    if user_data.id:
+        return UserCrud.get_by_id(db=db, id=user_data.id)
+
+    if user_data.phone:
+        return UserCrud.get_user_by_phone(db=db, phone=user_data.phone)
+
+    if user_data.email:
+        return UserCrud.get_user_by_email(db=db, email=user_data.email)
+
+
+def get_user_from_token_payload(
+    db: Session,
+    token_payload: Annotated[TokenPayload, Depends(get_token_payload)],
+) -> UserData:
+    return get_user(db, token_payload)
 
 
 def authenticate_user(
-    db: Annotated[Session, Depends(db_dependency)],
-    payload: Annotated[Payload, Depends(decode_access_token)],
-) -> UserAllInfo:
-    # Check that a phone number or email address is available
-    if not any(payload.id, payload.phone, payload.email):
-        raise_credentials_exception(
-            detail="Provide the password AND phone number Or email address",
-        )
+    db: Session, user_data: UserLogin | TokenPayload
+) -> bool | UserAllInfo:
+    """Returns a user if the user is authenticated
 
-    is_none = lambda x: False if x else True
-    user = None
+    Returns False if the user is not authenticated
+    """
+    user = get_user(db, user_data)
+    if user is None:
+        return False
 
-    # Check for the user in our database
-    if payload.id:
-        user = UserCrud.get_by_id(db=db, id=payload.id)
+    password_bytes = user_data.password.encode(config("ENCODE_FMT"))
+    is_valid_password = checkpw(password_bytes, user.password)
 
-    if is_none(user) and payload.phone:
-        user = UserCrud.get_user_by_phone(db=db, phone=payload.phone)
-
-    if is_none(user) and payload.email:
-        user = UserCrud.get_user_by_email(db=db, email=payload.email)
-
-    if is_none(user):
-        raise_credentials_exception(
-            detail="User Does Not Exist", status_code=status.HTTP_404_NOT_FOUND
-        )
-
-    # Validate the user's password
-    is_valid_password = bcrypt.checkpw(payload.password, user.password)
     if not is_valid_password:
-        raise_credentials_exception(detail="Invalid password. Try again")
+        raise_credentials_exception(detail="Incorrect password")
 
-    return user
+    return UserAllInfo.from_orm(user)
+
+
+# def get_active_user(
+#     authenticated_user: Annotated[UserAllInfo, Depends(authenticate_user)]
+# ) -> UserAllInfo:
+#     if not authenticated_user.is_active:
+#         raise HTTPException(status_code=400, detail="Inactive user")
+
+#     return authenticated_user

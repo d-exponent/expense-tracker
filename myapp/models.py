@@ -9,6 +9,7 @@ from sqlalchemy import (
     Integer,
     String,
     ForeignKey,
+    LargeBinary,
     Numeric,
     DateTime,
     CheckConstraint,
@@ -28,11 +29,11 @@ class User(Base):
 
     id = Column(Integer, primary_key=True)
     first_name = Column(String(length=40), nullable=False)
-    # middle_name = Column(String(length=40))
+    middle_name = Column(String(length=40))
     last_name = Column(String(length=40), nullable=False)
     phone = Column(String(25), unique=True, nullable=False)
     email = Column(String(70), unique=True)
-    password = Column(String)
+    password = Column(LargeBinary)
     image = Column(String)
     is_active = Column(Boolean, server_default=text("True"))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -54,6 +55,7 @@ class User(Base):
             Name: {self.first_name} {self.last_name}
             Phone: {self.phone} 
             Email: {self.email}
+            Password: {self.password}
         """
 
 

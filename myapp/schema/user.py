@@ -19,15 +19,15 @@ password_reg = "^(?=(.*[A-Z]){1,})(?=(.*[0-9]){1,})(?=(.*[!@#$%^&*()\-__+.]){1,}
 
 class UserBase(BaseModel):
     first_name: constr(max_length=40, strip_whitespace=True)
-    # middle_name: constr(max_length=40, strip_whitespace=True) = None
+    middle_name: constr(max_length=40, strip_whitespace=True) = None
     last_name: constr(max_length=40, strip_whitespace=True)
     phone: constr(max_length=25, strip_whitespace=True)
     email: EmailStr | None
     image: str = None
 
 
-class UserCreate(BaseModel):
-    password: constr(regex=password_reg) = None
+class UserCreate(UserBase):
+    password: constr(regex=password_reg) | bytes = None
 
 
 class UserOut(UserBase):
@@ -39,6 +39,7 @@ class UserOut(UserBase):
         orm_mode = True
 
 
+# Password must never ever ever ever be sent from our server
 class UserAllInfo(UserOut):
     is_active: bool = True
     created_at: datetime
