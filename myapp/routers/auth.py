@@ -38,7 +38,6 @@ def login(
     user_data.validate_schema()
     db_user = authenticate_user(db=db, user_data=user_data)
 
-    # Don't want to overload our token with null properties
     user_data.id = db_user.id
     filtered_user_data = remove_none_properties(user_data.dict())
     access_token = create_access_token(filtered_user_data)
