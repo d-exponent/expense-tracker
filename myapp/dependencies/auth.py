@@ -1,31 +1,46 @@
 from bcrypt import checkpw
-import bcrypt
 from decouple import config
 from typing import Annotated
 from jose import jwt, JWTError
 from sqlalchemy.orm import Session
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 from datetime import timedelta, datetime
 from fastapi.security import OAuth2PasswordBearer
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException
 
 from myapp.crud.users import UserCrud
-from myapp.schema.user import UserAllInfo
+from myapp.schema.user import UserAllInfo, UserLogin
 
 
+def raise_credentials_exception(
+    status_code: int = 401,
+    detail: str = "Could not validate credentials",
+) -> None:
+    raise HTTPException(
+        status_code=status_code,
+        detail=detail,
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+
+def get_datetime_timestamp_secs(date: datetime) -> int:
+    return int(date.timestamp())
+
+
+# JWT CONFIG
 JWT_SECRET = config("JWT_SECRET")
 JWT_ALGORITYHM = config("JWT_ALGORITHM")
 JWT_EXPIRES_AFTER = config("JWT_EXPIRES_AFTER")
-
-CURRENT_UTC_TIME = datetime.utcnow()
 EXPIRED_JWT_MESSAGE = "Your session has expired. Please login"
+ACEESS_TOKEN_COOKIE_KEY = "exptc_jwt"
 
-
-class UserLogin(BaseModel):
-    id: int | None
-    email: EmailStr | None
-    phone: str | None
-    password: str
+# TOKEN-COOKIE DATE-TIME CONFIG
+CURRENT_UTC_TIME = datetime.utcnow()
+LOGIN_TOKEN_EXPIRES_AFTER = CURRENT_UTC_TIME + timedelta(days=int(JWT_EXPIRES_AFTER))
+LOGIN_COOKIE_EXPIRES_AFTER = get_datetime_timestamp_secs(LOGIN_TOKEN_EXPIRES_AFTER)
+LOGOUT_COOKIE_EXPIRES_AFTER = get_datetime_timestamp_secs(
+    CURRENT_UTC_TIME + timedelta(seconds=1)
+)
 
 
 class TokenPayload(UserLogin):
@@ -38,24 +53,6 @@ class UserData(BaseModel):
     plain_password = str
 
 
-def raise_credentials_exception(
-    status_code: int = status.HTTP_401_UNAUTHORIZED,
-    detail: str = "Could not validate credentials",
-) -> None:
-    raise HTTPException(
-        status_code=status_code,
-        detail=detail,
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-
-
-def handle_jwt_error(error_message):
-    if "Signature has expired" in error_message:
-        raise_credentials_exception(detail=EXPIRED_JWT_MESSAGE)
-
-    raise_credentials_exception()
-
-
 oauth_scheme = OAuth2PasswordBearer(tokenUrl="")
 
 
@@ -63,43 +60,31 @@ def create_access_token(data: dict) -> str:
     """Create a new access token"""
 
     to_encode = data.copy()
-
-    expire_utc_time = CURRENT_UTC_TIME + timedelta(days=int(JWT_EXPIRES_AFTER))
-    to_encode.update({"exp": expire_utc_time, "iat": CURRENT_UTC_TIME})
+    del to_encode["password"]  # Just incase
+    to_encode.update({"exp": LOGIN_TOKEN_EXPIRES_AFTER, "iat": CURRENT_UTC_TIME})
     access_token = jwt.encode(to_encode, JWT_SECRET, algorithm=JWT_ALGORITYHM)
 
     return access_token
 
 
 def decode_access_token(access_token: str) -> dict:
-    """Return a decoded access token
-
+    """
+    Return a decoded access token\n
     Throws exception if access token is not valid or Expired
     """
+
     try:
-        token_data = jwt.decode(access_token, JWT_SECRET, algorithms=JWT_ALGORITYHM)
+        return jwt.decode(access_token, JWT_SECRET, algorithms=JWT_ALGORITYHM)
 
     except JWTError as e:
-        handle_jwt_error(str(e))
-    else:
-        return token_data
+        if "Signature has expired" in str(e):
+            raise_credentials_exception(detail=EXPIRED_JWT_MESSAGE)
 
-
-def get_token_payload(access_token: Annotated[str, Depends(oauth_scheme)]):
-    """Returns a token payload
-
-    Extracts access token from Authorization header
-    """
-
-    token_data = decode_access_token(access_token)
-
-    return TokenPayload(**token_data)
+        raise_credentials_exception()
 
 
 def get_user(db: Session, user_data: UserLogin | TokenPayload) -> UserAllInfo:
-    """
-    Returns a User object from the database or None if the user is not found
-    """
+    """Returns a User object from the database or None"""
 
     if user_data.id:
         return UserCrud.get_by_id(db=db, id=user_data.id)
@@ -111,23 +96,15 @@ def get_user(db: Session, user_data: UserLogin | TokenPayload) -> UserAllInfo:
         return UserCrud.get_user_by_email(db=db, email=user_data.email)
 
 
-def get_user_from_token_payload(
-    db: Session,
-    token_payload: Annotated[TokenPayload, Depends(get_token_payload)],
-) -> UserData:
-    return get_user(db, token_payload)
-
-
-def authenticate_user(
-    db: Session, user_data: UserLogin | TokenPayload
-) -> bool | UserAllInfo:
-    """Returns a user if the user is authenticated
-
-    Returns False if the user is not authenticated
+def authenticate_user(db: Session, user_data: UserLogin) -> UserAllInfo:
     """
+    Returns a user if the user is authenticated\n
+    Throws a 401 if the user is not authenticated or None
+    """
+
     user = get_user(db, user_data)
     if user is None:
-        return False
+        raise_credentials_exception(detail="Incorrect login credentials")
 
     password_bytes = user_data.password.encode(config("ENCODE_FMT"))
     is_valid_password = checkpw(password_bytes, user.password)
@@ -136,6 +113,24 @@ def authenticate_user(
         raise_credentials_exception(detail="Incorrect password")
 
     return UserAllInfo.from_orm(user)
+
+
+# DEPENDENCIES --------------------------------
+def get_token_payload(access_token: Annotated[str, Depends(oauth_scheme)]):
+    """
+    Returns a token payload\n
+    Extracts access token from Authorization header
+    """
+    token_data = decode_access_token(access_token)
+
+    return TokenPayload(**token_data)
+
+
+def get_user_from_token_payload(
+    db: Session,
+    token_payload: Annotated[TokenPayload, Depends(get_token_payload)],
+) -> UserData:
+    return get_user(db, token_payload)
 
 
 # def get_active_user(
