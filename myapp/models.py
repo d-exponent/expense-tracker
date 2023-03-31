@@ -46,17 +46,7 @@ class User(Base):
     password_reset_token = Column(String)
     password_reset_token_expires_at = Column(DateTime(timezone=True))
 
-    # bills = relationship("Bill", back_populates="users")
-    # payments = relationship("Payment", back_populates="users")
-
-    def __repr__(self) -> str:
-        return f"""
-            ID: {self.id}
-            Name: {self.first_name} {self.last_name}
-            Phone: {self.phone} 
-            Email: {self.email}
-            Password: {self.password}
-        """
+    user_bills = relationship("Bill", back_populates="user_owner")
 
 
 class Creditor(Base):
@@ -92,15 +82,6 @@ class Creditor(Base):
         onupdate=func.now(),
     )
 
-    def __repr__(self) -> str:
-        return f"""
-            ID: {self.id}
-            Name: {self.name} 
-            Phone: {self.phone} 
-            Created: {self.created_at}
-            Updated: {self.updated_at}
-        """
-
 
 class Bill(Base):
     __tablename__ = "bills"
@@ -130,7 +111,8 @@ class Bill(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
 
-    payments = relationship("Payment", back_populates="bill")
+    payments = relationship("Payment", back_populates="owner_bill")
+    user_owner = relationship("User", back_populates="user_bills")
 
 
 class Payment(Base):
@@ -146,4 +128,4 @@ class Payment(Base):
     amount = Column(Numeric(10, 2), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    bill = relationship("Bill", back_populates="payments")
+    owner_bill = relationship("Bill", back_populates="payments")

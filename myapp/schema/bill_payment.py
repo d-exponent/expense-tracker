@@ -1,6 +1,7 @@
 from pydantic import BaseModel, constr
 from datetime import datetime
 
+
 class BillCreate(BaseModel):
     user_id: int
     creditor_id: int
@@ -13,20 +14,22 @@ class BillOut(BillCreate):
     id: int
     paid: bool
     current_balance: float
-    created_at: datetime
+
+    payment = list[PaymentOut]
 
     class Config:
         orm_mode = True
 
 
 class BillALlInfo(BillOut):
+    created_at: datetime
     updated_at: datetime
 
     class Config:
         orm_mode = True
 
 
-# FOR CREATE BILLS CRUD ONLY
+# FOR BILLS CRUD ONLY
 class UserInfo(BaseModel):
     user_id: int
     user_names: constr(strip_whitespace=True)
@@ -50,3 +53,20 @@ class CustomBillOut(BaseModel):
     last_updated: datetime
     payment_record_id: int
     balance_detail: constr(strip_whitespace=True)
+
+
+# PAYMENTS
+class PaymentCreate(BaseModel):
+    bill_id: int
+    amount: float
+    first_payment: bool = False
+
+
+class PaymentOut(PaymentCreate):
+    id: int
+    created_at: datetime
+
+    owner_bill = list[BillOut]
+
+    class Config:
+        orm_mode = True

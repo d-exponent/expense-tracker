@@ -1,17 +1,15 @@
 from fastapi import APIRouter, HTTPException, Body, Depends, Path, Query
-from sqlalchemy.exc import IntegrityError, DataError
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from myapp.schema.creditor import CreditorCreate, CreditorOut
 from myapp.crud.creditors import CreditorCrud
-from myapp.models import Base
-from myapp.utils import database, error_utils
-from myapp.database.sqlalchemy_config import engine
+from myapp.utils.database import db_dependency
+from myapp.utils.error_utils import (
+    handle_empty_records,
+    raise_server_error,
+)
 
-
-Base.metadata.create_all(bind=engine)
-
-db_instance = database.db_dependency
 
 router = APIRouter(prefix="/creditors", tags=["creditors"])
 
@@ -38,19 +36,12 @@ def handle_integrity_error(error_message):
             detail="An account number can only be linked with a phone number",
         )
 
-    print("🧰🧰🧰 INTEGRITY", error_message)
-    error_utils.raise_server_error()
-
-
-def handle_data_error(error_message):
-    # TODO: handle Data errors
-    print("🧰🧰🧰 DATAERROR", error_message)
-    error_utils.raise_server_error()
+    raise_server_error()
 
 
 @router.post("/", response_model=CreditorOut, status_code=201)
 def create_creditor(
-    creditor: CreditorCreate = Body(), db: Session = Depends(db_instance)
+    creditor: CreditorCreate = Body(), db: Session = Depends(db_dependency)
 ):
     db_creditor = CreditorCrud.get_creditor_by_phone(db, creditor.phone)
 
@@ -64,26 +55,23 @@ def create_creditor(
     except IntegrityError as error:
         handle_integrity_error(str(error))
 
-    except DataError as error:
-        handle_data_error(str(error))
-
-    except Exception as error:
-        print("🧰🧰🧰🧰 Operator", str(error))
-        error_utils.raise_server_error()
+    except Exception:
+        raise_server_error()
     else:
         return users
 
 
 @router.get("/", status_code=200, response_model=list[CreditorOut])
-def get_creditors(db: Session = Depends(db_instance), skip: int = 0, limit: int = 100):
-    creditors = CreditorCrud.get_records(db, skip=skip, limit=limit)
-
-    if len(creditors) == 0:
-        raise HTTPException(
-            status_code=404, detail="There are no creditors at this time."
-        )
-
-    return creditors
+def get_creditors(
+    db: Session = Depends(db_dependency), skip: int = 0, limit: int = 100
+):
+    try:
+        creditors = CreditorCrud.get_records(db, skip=skip, limit=limit)
+    except Exception:
+        raise_server_error()
+    else:
+        handle_empty_records(records=creditors, records_name="creditors")
+        return creditors
 
 
 @router.get("/{creditor_id}", response_model=CreditorOut)
@@ -92,10 +80,8 @@ def get_creditor(
     name: str = Query(default=None),
     phone: str = Query(default=None),
     email: str = Query(default=None),
-    db: Session = Depends(db_instance),
+    db: Session = Depends(db_dependency),
 ):
-    creditor = None
-
     if creditor_id > 0:
         creditor = CreditorCrud.get_by_id(db, id=creditor_id)
     else:

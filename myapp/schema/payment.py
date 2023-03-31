@@ -2,9 +2,6 @@ from pydantic import BaseModel
 from datetime import datetime
 
 
-from myapp.schema.bill import BillOut
-
-
 class PaymentCreate(BaseModel):
     bill_id: int
     amount: float

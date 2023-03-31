@@ -20,8 +20,6 @@ class CreditorCreate(BaseModel):
 
 class CreditorOut(CreditorCreate):
     id: int = None
-    bills: list[BillOut] = []
-    payments: list[PaymentOut] = []
 
     class Config:
         orm_mode = True

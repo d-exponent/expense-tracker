@@ -50,21 +50,24 @@ class BillCrud(Crud):
             # 3. Insert a new payment with the new bill information
             cursor.execute(TransactionQueries.insert_payment, insert_payment_params)
 
-            join_params = {
-                "user_id": bill_data_dict["user_id"],
-                "creditor_id": bill_data_dict["creditor_id"],
-                "bill_id": new_bill_record[0],
-            }
-
-            # 4. Return some information to the user with a join
-            cursor.execute(TransactionQueries.get_bills_user_creditor_join, join_params)
-            joined_data = cursor.fetchone()
         except Exception as e:
             connection.rollback()
             handle_transaction_exceptions(str(e))
         else:
-            cursor.close()
             connection.commit()
+
+            # Return some information to the user with a join
+            cursor.execute(
+                TransactionQueries.get_bills_user_creditor_join,
+                {
+                    "user_id": bill_data_dict["user_id"],
+                    "creditor_id": bill_data_dict["creditor_id"],
+                    "bill_id": new_bill_record[0],
+                },
+            )
+
+            joined_data = cursor.fetchone()
+            cursor.close()
             return CustomBillOut(**map_record_to_dict(joined_data))
         finally:
             connection.close()

@@ -1,15 +1,19 @@
-from fastapi import APIRouter, Depends, Query, Path, HTTPException
+from fastapi import APIRouter, Depends, Query, Path
 from sqlalchemy.orm import Session
 
-from myapp.models import Base
-from myapp.database.sqlalchemy_config import engine
-from myapp.utils import database, error_utils
+
+from myapp.utils.database import db_dependency
 from myapp.schema.payment import PaymentOut
+from myapp.schema.bill import BillOut
 from myapp.crud.payments import PaymentCrud
+from myapp.utils.error_utils import (
+    raise_server_error,
+    handle_empty_records,
+)
 
 
-Base.metadata.create_all(bind=engine)
-db_instance = database.db_dependency
+class PaymentWithOwnerBill(PaymentOut):
+    owner_bill: BillOut
 
 
 router = APIRouter(prefix="/payments", tags=["payments"])
@@ -17,30 +21,24 @@ router = APIRouter(prefix="/payments", tags=["payments"])
 
 @router.get("/", status_code=200, response_model=list[PaymentOut])
 def get_payments(
-    db: Session = Depends(db_instance),
+    db: Session = Depends(db_dependency),
     skip: int = Query(default=0),
     limit: int = Query(default=100),
 ):
     try:
         payments = PaymentCrud.get_records(db=db, skip=skip, limit=limit)
-    except Exception as e:
-        print("🧰 Error", e)
-        error_utils.raise_server_error()
+    except Exception:
+        raise_server_error()
     else:
-        if len(payments) == 0:
-            raise HTTPException(
-                status_code=404, detail="There are no payments at this time"
-            )
-
+        handle_empty_records(records=payments, records_name="payments")
         return payments
 
 
-@router.get("/{payment_id}", status_code=200, response_model=PaymentOut)
-def get_payment(payment_id: int = Path(), db: Session = Depends(db_instance)):
+@router.get("/{payment_id}", status_code=200, response_model=PaymentWithOwnerBill)
+def get_payment(payment_id: int = Path(), db: Session = Depends(db_dependency)):
     try:
         payment = PaymentCrud.get_by_id(db=db, id=payment_id)
-    except Exception as e:
-        print("Error 🧰", e)
-        error_utils.raise_server_error()
+    except Exception:
+        raise_server_error()
     else:
         return payment

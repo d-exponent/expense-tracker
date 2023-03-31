@@ -2,18 +2,19 @@ from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from myapp.utils import error_utils, error_messages
-from myapp.models import Base
-from myapp.utils import database
-from myapp.database.sqlalchemy_config import engine
+from myapp.utils.error_messages import UserErrorMessages
+from myapp.schema.bill import BillOut
+from myapp.utils.database import db_dependency
 from myapp.schema.user import UserCreate, UserOut
 from myapp.crud.users import UserCrud
+from myapp.utils.error_utils import (
+    raise_server_error,
+    handle_empty_records,
+)
 
 
-Base.metadata.create_all(bind=engine)
-
-db_instance = database.db_dependency
-error_msgs = error_messages.UserErrorMessages
+class UserOutWithBills(UserOut):
+    user_bills: list[BillOut] = []
 
 
 def handle_integrity_error(error_message):
@@ -21,9 +22,9 @@ def handle_integrity_error(error_message):
         raise HTTPException(status_code=400, detail="Provide the email and password")
 
     if "users_phone_email_key" in error_message:
-        raise HTTPException(status_code=400, detail=error_msgs.already_exists)
+        raise HTTPException(status_code=400, detail=UserErrorMessages.already_exists)
 
-    error_utils.raise_server_error()
+    raise_server_error()
 
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -31,34 +32,32 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 # CREATE AND PERSIT A NEW USER TO DB IF NOT EXISTS
 @router.post("/", response_model=UserOut, status_code=201)
-def create_users(user: UserCreate, db: Session = Depends(db_instance)):
+def create_users(user: UserCreate, db: Session = Depends(db_dependency)):
     db_user = UserCrud.get_user_by_phone(db, user.phone)
     if db_user:
-        raise HTTPException(status_code=400, detail=error_msgs.already_exists)
+        raise HTTPException(status_code=400, detail=UserErrorMessages.already_exists)
 
     try:
         return UserCrud.create(db, user)
     except IntegrityError as error:
         handle_integrity_error(str(error))
     except Exception:
-        error_utils.raise_server_error()
+        raise_server_error()
 
 
 # GET AN ARRAY OF USERS
 @router.get("/", response_model=list[UserOut], status_code=200)
 def get_all_users(
-    db: Session = Depends(db_instance),
+    db: Session = Depends(db_dependency),
     skip: int = Query(default=0),
     limit: int = Query(default=100),
 ):
     try:
         users = UserCrud.get_records(db=db, skip=skip, limit=limit)
-    except Exception as e:
-        print("🧰🧰Error: ", str(e))
-        error_utils.raise_server_error()
+    except Exception:
+        raise_server_error()
     else:
-        if len(users) == 0:
-            raise HTTPException(status_code=404, detail=error_msgs.no_users)
+        handle_empty_records(records=users, records_name="users")
         return users
 
 
@@ -66,15 +65,13 @@ user_id_description = "If you don't have the users id, provide any integer less 
 
 
 # GET A SINGLE USER BY ID
-@router.get("/{user_id}", response_model=UserOut, status_code=200)
+@router.get("/{user_id}", response_model=UserOutWithBills, status_code=200)
 def get_user(
     user_id: int = Path(description=user_id_description),
     phone: str = Query(default=None, description="Retrieve the user by phone number"),
     email: str = Query(default=None, description="Retrive the user by email address"),
-    db: Session = Depends(db_instance),
+    db: Session = Depends(db_dependency),
 ):
-    user = None
-
     if user_id > 0:
         user = UserCrud.get_by_id(db=db, id=user_id)
     else:

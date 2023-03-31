@@ -51,8 +51,6 @@ class UserCreate(UserBase):
 
 class UserOut(UserBase):
     id: int
-    bills: list[BillOut] = []
-    payments: list[PaymentOut] = []
 
     class Config:
         orm_mode = True
