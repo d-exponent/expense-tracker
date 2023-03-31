@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from myapp.models import Base
 from myapp.database.sqlalchemy_config import engine
 from myapp.utils import database, error_utils
-from myapp.schema.payment import PaymentAllInfo
+from myapp.schema.payment import PaymentOut
 from myapp.crud.payments import PaymentCrud
 
 
@@ -15,7 +15,7 @@ db_instance = database.db_dependency
 router = APIRouter(prefix="/payments", tags=["payments"])
 
 
-@router.get("/", status_code=200, response_model=list[PaymentAllInfo])
+@router.get("/", status_code=200, response_model=list[PaymentOut])
 def get_payments(
     db: Session = Depends(db_instance),
     skip: int = Query(default=0),
@@ -35,7 +35,7 @@ def get_payments(
         return payments
 
 
-@router.get("/{payment_id}", status_code=200, response_model=PaymentAllInfo)
+@router.get("/{payment_id}", status_code=200, response_model=PaymentOut)
 def get_payment(payment_id: int = Path(), db: Session = Depends(db_instance)):
     try:
         payment = PaymentCrud.get_by_id(db=db, id=payment_id)

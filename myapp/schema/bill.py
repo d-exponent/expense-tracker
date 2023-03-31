@@ -3,10 +3,10 @@ from datetime import datetime
 
 
 class BillCreate(BaseModel):
-    description: constr(strip_whitespace=True)
-    starting_amount: float
     user_id: int
     creditor_id: int
+    description: constr(strip_whitespace=True)
+    starting_amount: float
     paid_amount: float = 0.00
 
 

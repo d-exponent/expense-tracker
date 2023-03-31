@@ -1,6 +1,6 @@
 from myapp.database.sqlalchemy_config import Base
 
-# from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship
 from sqlalchemy.schema import Computed
 from sqlalchemy.sql.expression import text, func
 from sqlalchemy import (
@@ -92,9 +92,6 @@ class Creditor(Base):
         onupdate=func.now(),
     )
 
-    # bills = relationship("Bill", back_populates="creditors")
-    # payments = relationship("Payment", back_populates="creditors")
-
     def __repr__(self) -> str:
         return f"""
             ID: {self.id}
@@ -133,10 +130,7 @@ class Bill(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
 
-
-#     payments = relationship("Payment", back_populates="bills")
-#     users = relationship("User", back_populates="users")
-#     creditors = relationship("Creditor", back_populates="bills")
+    payments = relationship("Payment", back_populates="bill")
 
 
 class Payment(Base):
@@ -148,7 +142,8 @@ class Payment(Base):
         ForeignKey("bills.id", ondelete="CASCADE"),
         nullable=False,
     )
+    first_payment = Column(Boolean, server_default=text("False"))
     amount = Column(Numeric(10, 2), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    # bills = relationship("Bill", back_populates="payments")
+    bill = relationship("Bill", back_populates="payments")

@@ -1,6 +1,6 @@
 from datetime import datetime
 
-BILLTYPES = int | str | float | datetime
+BILL_TYPES = int | str | float | datetime
 
 
 # UTILITY CLASSES
@@ -10,29 +10,31 @@ class BillTransactionError(Exception):
 
 class TransactionQueries:
     insert_bill = """
-                        INSERT INTO bills (user_id, creditor_id, starting_amount, paid_amount, description)
-                        VALUES
-                            (%(user_id)s, %(creditor_id)s, %(starting_amount)s, %(paid_amount)s, %(description)s);
+            INSERT INTO bills
+                (user_id, creditor_id, starting_amount, paid_amount, description)
+            VALUES
+                (%(user_id)s, %(creditor_id)s, %(starting_amount)s, %(paid_amount)s, %(description)s);
+            """
+
+    insert_payment = """
+                    INSERT INTO payments (bill_id, amount, first_payment)
+                    VALUES (%(bill_id)s,%(amount)s, %(first_payment)s);
                     """
 
-    insert_payment = """INSERT INTO payments (bill_id, amount)
-                        VALUES (%(bill_id)s,%(amount)s);
-
-                    """
     get_new_bill = "SELECT id, paid_amount FROM bills ORDER BY created_at DESC LIMIT 1;"
 
     get_bills_user_creditor_join = """
-                SELECT
-                    b.id, b.user_id, CONCAT(u.first_name, ' ', u.last_name),
-                    b.creditor_id, c.name,b.starting_amount, b.paid_amount, b.paid,
-                    b.description, b.current_balance, b.created_at, b.updated_at, p.id
-                FROM bills AS b
-                JOIN users AS u ON u.id = %(user_id)s
-                JOIN creditors as c ON c.id = %(creditor_id)s
-                JOIN payments AS p ON p.bill_id = b.id
-                ORDER BY created_at DESC
-                LIMIT 1;
-            """
+                    SELECT
+                        b.id, b.user_id, CONCAT(u.first_name, ' ', u.last_name),
+                        b.creditor_id, c.name,b.starting_amount, b.paid_amount, b.paid,
+                        b.description, b.current_balance, b.created_at, b.updated_at, p.id
+                    FROM bills AS b
+                    JOIN users AS u ON u.id = %(user_id)s
+                    JOIN creditors as c ON c.id = %(creditor_id)s
+                    JOIN payments AS p ON p.bill_id = b.id
+                    ORDER BY created_at DESC
+                    LIMIT 1;
+                    """
 
 
 # UTILITY FUNCTIONS
@@ -47,7 +49,7 @@ def describe_balance(balance: int | int, user_names: str, creditor_name: str) ->
         return f"{user_names} owes {creditor_name} {balance * -1}"
 
 
-def map_record_to_dict(sql_recored: tuple) -> dict[str, BILLTYPES]:
+def map_record_to_dict(sql_recored: tuple) -> dict[str, BILL_TYPES]:
     return {
         "bill_id": sql_recored[0],
         "user": {
@@ -74,7 +76,7 @@ def map_record_to_dict(sql_recored: tuple) -> dict[str, BILLTYPES]:
     }
 
 
-def handle_exceptions(error_message) -> None:
+def handle_transaction_exceptions(error_message) -> None:
     if "bills_creditor_id_fkey" in error_message:
         raise BillTransactionError("The Creditor ID is invalid")
 
