@@ -3,7 +3,7 @@ from psycopg2 import connect
 from myapp.crud.base_crud import Crud
 from myapp.database.config import user, password, db
 from myapp.models import Bill as BillOrm
-from myapp.schema.bill import BillCreate, CustomBillOut
+from myapp.schema.bill_payment import BillCreate, CustomBillOut
 from myapp.crud.utils.bills_utils import (
     BILL_TYPES,
     map_record_to_dict,
@@ -71,3 +71,9 @@ class BillCrud(Crud):
             return CustomBillOut(**map_record_to_dict(joined_data))
         finally:
             connection.close()
+
+    @classmethod
+    def update_bill(cls):
+        # TODO:  Update the bill and make a payment for it
+        # HINT TO SELF: DO a TRANSACTION.
+        pass

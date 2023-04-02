@@ -57,7 +57,8 @@ oauth_scheme = OAuth2PasswordBearer(tokenUrl="")
 
 
 def create_access_token(data: dict) -> str:
-    """Create a new access token"""
+    if not isinstance(data, dict):
+        raise Exception("Data passed to create_access_token must be a dict")
 
     to_encode = data.copy()
     del to_encode["password"]  # Just incase
@@ -99,10 +100,11 @@ def get_user(db: Session, user_data: UserLogin | TokenPayload) -> UserAllInfo:
 def authenticate_user(db: Session, user_data: UserLogin) -> UserAllInfo:
     """
     Returns a user if the user is authenticated\n
-    Throws a 401 if the user is not authenticated or None
+    Throws a 401 HTTP response if the user is not authenticated or None
     """
 
     user = get_user(db, user_data)
+
     if user is None:
         raise_credentials_exception(detail="Incorrect login credentials")
 
@@ -131,12 +133,3 @@ def get_user_from_token_payload(
     token_payload: Annotated[TokenPayload, Depends(get_token_payload)],
 ) -> UserData:
     return get_user(db, token_payload)
-
-
-# def get_active_user(
-#     authenticated_user: Annotated[UserAllInfo, Depends(authenticate_user)]
-# ) -> UserAllInfo:
-#     if not authenticated_user.is_active:
-#         raise HTTPException(status_code=400, detail="Inactive user")
-
-#     return authenticated_user

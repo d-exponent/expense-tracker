@@ -1,7 +1,7 @@
 from myapp.database.sqlalchemy_config import SessionLocal
 
 
-def db_dependency():
+def db_init():
     db = SessionLocal()
 
     try:

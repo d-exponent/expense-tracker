@@ -2,9 +2,9 @@ from fastapi import APIRouter, HTTPException, Body, Depends, Path, Query
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from myapp.schema.creditor import CreditorCreate, CreditorOut
+from myapp.schema.creditor import CreditorCreate, CreditorOut, CreditorUpdate
 from myapp.crud.creditors import CreditorCrud
-from myapp.utils.database import db_dependency
+from myapp.utils.database import db_init
 from myapp.utils.error_utils import (
     handle_empty_records,
     raise_server_error,
@@ -39,10 +39,20 @@ def handle_integrity_error(error_message):
     raise_server_error()
 
 
-@router.post("/", response_model=CreditorOut, status_code=201)
-def create_creditor(
-    creditor: CreditorCreate = Body(), db: Session = Depends(db_dependency)
+# UPDATE USERS NAMES
+@router.patch("/{creditor_id}", response_model=CreditorOut, status_code=200)
+def update_user(
+    db: Session = Depends(db_init),
+    creditor_data: CreditorUpdate = Body(),
+    creditor_id: int = Path(),
 ):
+    return CreditorCrud.update_by_id(
+        db=db, id=creditor_id, data=creditor_data.dict(), model_name_repr="creditor"
+    )
+
+
+@router.post("/", response_model=CreditorOut, status_code=201)
+def create_creditor(creditor: CreditorCreate = Body(), db: Session = Depends(db_init)):
     db_creditor = CreditorCrud.get_creditor_by_phone(db, creditor.phone)
 
     if db_creditor:
@@ -62,9 +72,7 @@ def create_creditor(
 
 
 @router.get("/", status_code=200, response_model=list[CreditorOut])
-def get_creditors(
-    db: Session = Depends(db_dependency), skip: int = 0, limit: int = 100
-):
+def get_creditors(db: Session = Depends(db_init), skip: int = 0, limit: int = 100):
     try:
         creditors = CreditorCrud.get_records(db, skip=skip, limit=limit)
     except Exception:
@@ -80,7 +88,7 @@ def get_creditor(
     name: str = Query(default=None),
     phone: str = Query(default=None),
     email: str = Query(default=None),
-    db: Session = Depends(db_dependency),
+    db: Session = Depends(db_init),
 ):
     if creditor_id > 0:
         creditor = CreditorCrud.get_by_id(db, id=creditor_id)

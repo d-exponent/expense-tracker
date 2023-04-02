@@ -2,18 +2,19 @@ from sqlalchemy.orm import Session
 from decouple import config
 from bcrypt import gensalt, hashpw
 
-from myapp.schema.user import UserCreate, UserAllInfo
+from myapp.schema.user import UserCreate, UserAllInfo, UserUpdate
 from myapp.crud.base_crud import Crud
 from myapp.models import User as UserOrm
-
-
-def hash_password(password: str) -> bytes:
-    password_bytes = password.encode(config("ENCODE_FMT"))
-    return hashpw(password_bytes, gensalt())
+from myapp.utils.error_utils import raise_bad_request_http_error
 
 
 class UserCrud(Crud):
     orm_model = UserOrm
+
+    @classmethod
+    def _hash_password(cls, password: str) -> bytes:
+        password_bytes = password.encode(config("ENCODE_FMT"))
+        return hashpw(password_bytes, gensalt())
 
     @classmethod
     def __process(cls, user: UserCreate):
@@ -22,7 +23,7 @@ class UserCrud(Crud):
         user.last_name = user.last_name.title()
 
         if user.password:
-            user.password = hash_password(user.password)
+            user.password = cls._hash_password(user.password)
 
         if user.email:
             user.email = user.email.lower()
@@ -49,3 +50,4 @@ class UserCrud(Crud):
         return (
             db.query(cls.orm_model).filter(cls.orm_model.email == email.lower()).first()
         )
+

@@ -1,11 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, Path, Query
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, Body
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from myapp.utils.error_messages import UserErrorMessages
-from myapp.schema.bill import BillOut
-from myapp.utils.database import db_dependency
-from myapp.schema.user import UserCreate, UserOut
+from myapp.schema.bill_payment import BillOut
+from myapp.utils.database import db_init
+from myapp.schema.user import UserCreate, UserOut, UserUpdate
 from myapp.crud.users import UserCrud
 from myapp.utils.error_utils import (
     raise_server_error,
@@ -32,7 +32,7 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 # CREATE AND PERSIT A NEW USER TO DB IF NOT EXISTS
 @router.post("/", response_model=UserOut, status_code=201)
-def create_users(user: UserCreate, db: Session = Depends(db_dependency)):
+def create_users(user: UserCreate, db: Session = Depends(db_init)):
     db_user = UserCrud.get_user_by_phone(db, user.phone)
     if db_user:
         raise HTTPException(status_code=400, detail=UserErrorMessages.already_exists)
@@ -45,10 +45,24 @@ def create_users(user: UserCreate, db: Session = Depends(db_dependency)):
         raise_server_error()
 
 
+# UPDATE USERS NAMES
+@router.patch("/{user_id}", response_model=UserOut, status_code=200)
+def update_user(
+    db: Session = Depends(db_init),
+    user_data: UserUpdate = Body(),
+    user_id: int = Path(),
+):
+    user_data.validate_data()
+
+    return UserCrud.update_by_id(
+        db=db, id=user_id, data=user_data.dict(), model_name_repr="user"
+    )
+
+
 # GET AN ARRAY OF USERS
 @router.get("/", response_model=list[UserOut], status_code=200)
 def get_all_users(
-    db: Session = Depends(db_dependency),
+    db: Session = Depends(db_init),
     skip: int = Query(default=0),
     limit: int = Query(default=100),
 ):
@@ -70,7 +84,7 @@ def get_user(
     user_id: int = Path(description=user_id_description),
     phone: str = Query(default=None, description="Retrieve the user by phone number"),
     email: str = Query(default=None, description="Retrive the user by email address"),
-    db: Session = Depends(db_dependency),
+    db: Session = Depends(db_init),
 ):
     if user_id > 0:
         user = UserCrud.get_by_id(db=db, id=user_id)

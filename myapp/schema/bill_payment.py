@@ -15,8 +15,6 @@ class BillOut(BillCreate):
     paid: bool
     current_balance: float
 
-    payment = list[PaymentOut]
-
     class Config:
         orm_mode = True
 

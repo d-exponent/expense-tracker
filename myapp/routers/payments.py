@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, Query, Path
 from sqlalchemy.orm import Session
+from pydantic import Field
 
 
-from myapp.utils.database import db_dependency
-from myapp.schema.payment import PaymentOut
-from myapp.schema.bill import BillOut
+from myapp.utils.database import db_init
+from myapp.schema.bill_payment import BillOut, PaymentOut
 from myapp.crud.payments import PaymentCrud
 from myapp.utils.error_utils import (
     raise_server_error,
@@ -13,7 +13,7 @@ from myapp.utils.error_utils import (
 
 
 class PaymentWithOwnerBill(PaymentOut):
-    owner_bill: BillOut
+    owner: BillOut = Field(alias="owner_bill")
 
 
 router = APIRouter(prefix="/payments", tags=["payments"])
@@ -21,7 +21,7 @@ router = APIRouter(prefix="/payments", tags=["payments"])
 
 @router.get("/", status_code=200, response_model=list[PaymentOut])
 def get_payments(
-    db: Session = Depends(db_dependency),
+    db: Session = Depends(db_init),
     skip: int = Query(default=0),
     limit: int = Query(default=100),
 ):
@@ -35,7 +35,7 @@ def get_payments(
 
 
 @router.get("/{payment_id}", status_code=200, response_model=PaymentWithOwnerBill)
-def get_payment(payment_id: int = Path(), db: Session = Depends(db_dependency)):
+def get_payment(payment_id: int = Path(), db: Session = Depends(db_init)):
     try:
         payment = PaymentCrud.get_by_id(db=db, id=payment_id)
     except Exception:

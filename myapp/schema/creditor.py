@@ -1,21 +1,27 @@
 from pydantic import BaseModel, EmailStr, constr
 from datetime import datetime
 
-from myapp.schema.bill import BillOut
-from myapp.schema.payment import PaymentOut
 
-
-class CreditorCreate(BaseModel):
-    name: constr(strip_whitespace=True, max_length=100)
+class CreditorCreateOptional(BaseModel):
     description: constr(strip_whitespace=True, max_length=300) = None
-    street_address: str = None
-    city: constr(strip_whitespace=True, max_length=40)
-    state: constr(strip_whitespace=True, max_length=40)
     country: constr(strip_whitespace=True, max_length=40) = None
+    bank_name: constr(strip_whitespace=True, max_length=40) = None
+    street_address: str = None
+    account_number: str = None
+
+
+class CreditorCreate(CreditorCreateOptional):
     phone: str
     email: EmailStr = None
-    bank_name: constr(strip_whitespace=True, max_length=40) = None
-    account_number: str = None
+    name: constr(strip_whitespace=True, max_length=100)
+    city: constr(strip_whitespace=True, max_length=40)
+    state: constr(strip_whitespace=True, max_length=40)
+
+
+class CreditorUpdate(CreditorCreateOptional):
+    name: constr(strip_whitespace=True, max_length=100) = None
+    city: constr(strip_whitespace=True, max_length=40) = None
+    state: constr(strip_whitespace=True, max_length=40) = None
 
 
 class CreditorOut(CreditorCreate):

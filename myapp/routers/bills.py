@@ -2,9 +2,8 @@ from fastapi import APIRouter, Body, Depends, Query, Path
 from sqlalchemy.orm import Session
 
 from myapp.crud.bills import BillCrud, CustomBillOut, BillTransactionError
-from myapp.utils.database import db_dependency
-from myapp.schema.bill import BillCreate, BillOut
-from myapp.schema.payment import PaymentOut
+from myapp.utils.database import db_init
+from myapp.schema.bill_payment import BillCreate, BillOut, PaymentOut
 from myapp.utils.error_utils import (
     raise_server_error,
     raise_bad_request_http_error,
@@ -37,7 +36,7 @@ def make_bill(bill: BillCreate = Body()):
 
 @router.get("/", response_model=list[BillOut], status_code=200)
 def get_bills(
-    db: Session = Depends(db_dependency),
+    db: Session = Depends(db_init),
     skip: int = Query(default=0),
     limit: int = Query(default=100),
 ):
@@ -51,10 +50,12 @@ def get_bills(
 
 
 @router.get("/{bill_id}", response_model=BillWithPayments, status_code=200)
-def get_bill(bill_id: int = Path(), db: Session = Depends(db_dependency)):
+def get_bill(bill_id: int = Path(), db: Session = Depends(db_init)):
     try:
         bill = BillCrud.get_by_id(db=db, id=bill_id)
     except Exception:
         raise_server_error()
     else:
         return bill
+
+
