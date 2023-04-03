@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, Query, Path
+from fastapi import APIRouter, Depends, Query, Path, Body
 from sqlalchemy.orm import Session
 from pydantic import Field
+from typing import Annotated
 
 
 from myapp.utils.database import db_init
-from myapp.schema.bill_payment import BillOut, PaymentOut
+from myapp.schema.bill_payment import BillOut, PaymentOut, PaymentCreate
 from myapp.crud.payments import PaymentCrud
 from myapp.utils.error_utils import (
     raise_server_error,
@@ -17,6 +18,14 @@ class PaymentWithOwnerBill(PaymentOut):
 
 
 router = APIRouter(prefix="/payments", tags=["payments"])
+
+
+@router.post("/", response_model=PaymentOut)
+def create_payment(
+    db: Annotated[Session, Depends(db_init)],
+    payment_data: Annotated[PaymentCreate, Body()],
+):
+    return PaymentCrud.create(db=db, payment=payment_data)
 
 
 @router.get("/", status_code=200, response_model=list[PaymentOut])

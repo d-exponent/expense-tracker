@@ -1,5 +1,6 @@
 from myapp.database.sqlalchemy_config import Base
 
+from enum import Enum
 from sqlalchemy.orm import relationship
 from sqlalchemy.schema import Computed
 from sqlalchemy.sql.expression import text, func
@@ -14,6 +15,7 @@ from sqlalchemy import (
     DateTime,
     CheckConstraint,
     UniqueConstraint,
+    Enum,
 )
 
 
@@ -47,6 +49,14 @@ class User(Base):
     password_reset_token_expires_at = Column(DateTime(timezone=True))
 
     user_bills = relationship("Bill", back_populates="user_owner")
+
+    def __repr__(self) -> str:
+        return f"""
+        USER:
+        ID: {self.id}
+        PHONE: {self.phone}
+        NAME: {self.first_name} {self.last_name}
+        """
 
 
 class Creditor(Base):
@@ -82,6 +92,14 @@ class Creditor(Base):
         onupdate=func.now(),
     )
 
+    def __repr__(self) -> str:
+        return f"""
+        CREDITOR:
+        ID: {self.id}
+        PHONE: {self.phone}
+        NAME: {self.name}
+        """
+
 
 class Bill(Base):
     __tablename__ = "bills"
@@ -100,11 +118,12 @@ class Bill(Base):
         ForeignKey("creditors.id", ondelete="CASCADE"),
         nullable=False,
     )
-    description = Column(String, nullable=False)
-    starting_amount = Column(Numeric(10, 2), nullable=False)
-    paid_amount = Column(Numeric(10, 2), server_default=text("0.00"))
-    current_balance = Column(Numeric(10, 2), Computed("paid_amount - starting_amount"))
-    paid = Column(Boolean, Computed("paid_amount >= starting_amount"))
+    total_credit_amount = Column(Numeric(10, 2), server_default=text("0.00"))
+    total_paid_amount = Column(Numeric(10, 2), server_default=text("0.00"))
+    current_balance = Column(
+        Numeric(10, 2), Computed("total_paid_amount - total_credit_amount")
+    )
+    paid = Column(Boolean, Computed("total_paid_amount >= total_credit_amount"))
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(
@@ -113,6 +132,11 @@ class Bill(Base):
 
     payments = relationship("Payment", back_populates="owner_bill")
     user_owner = relationship("User", back_populates="user_bills")
+
+
+class IssuerEnum(Enum):
+    user: str = ("user",)
+    Creditor: str = ("creditor",)
 
 
 class Payment(Base):
@@ -124,7 +148,8 @@ class Payment(Base):
         ForeignKey("bills.id", ondelete="CASCADE"),
         nullable=False,
     )
-    first_payment = Column(Boolean, server_default=text("False"))
+    note = Column(String(150))
+    issuer_type = Column(Enum('user', 'creditor', name="issuer_type"), nullable=False)
     amount = Column(Numeric(10, 2), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

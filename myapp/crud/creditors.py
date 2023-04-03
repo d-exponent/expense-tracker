@@ -17,9 +17,12 @@ def to_title_case(str) -> str:
 
 class CreditorCrud(Crud):
     orm_model = CreditorOrm
+    create_schema = CreditorCreate
 
     @classmethod
     def __process(cls, creditor: CreditorCreate):
+        cls.assert_item_schema(creditor)
+
         creditor.name = to_title_case(creditor.name)
         creditor.city = to_title_case(creditor.city)
         creditor.state = to_title_case(creditor.state)

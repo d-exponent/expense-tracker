@@ -1,79 +1,56 @@
 from psycopg2 import connect
+from fastapi import HTTPException
+from sqlalchemy.orm import Session
 
 from myapp.crud.base_crud import Crud
-from myapp.database.config import user, password, db
 from myapp.models import Bill as BillOrm
-from myapp.schema.bill_payment import BillCreate, CustomBillOut
-from myapp.crud.utils.bills_utils import (
-    BILL_TYPES,
-    map_record_to_dict,
-    handle_transaction_exceptions,
-    TransactionQueries,
-    BillTransactionError,  # Just so the bill router can accessed from this module
-)
+from myapp.schema.bill_payment import BillCreate, BillOutAllInfo, PaymentCreate, BillOut
+from myapp.utils.error_utils import raise_bad_request_http_error
+
+
+def add_payment_amount(payment_amount: float, bill_amount) -> float:
+    return payment_amount + float(bill_amount)
 
 
 class BillCrud(Crud):
     orm_model = BillOrm
+    create_schema = BillCreate
 
     @classmethod
-    def create(cls, bill: BillCreate):
-        bill_data_dict: dict[str, BILL_TYPES] = {
-            "user_id": bill.user_id,
-            "creditor_id": bill.creditor_id,
-            "starting_amount": bill.starting_amount,
-            "paid_amount": bill.paid_amount,
-            "description": bill.description,
-        }
+    def create(cls, db: Session, bill: BillCreate) -> BillOutAllInfo:
+        cls.assert_item_schema(bill)
 
-        # Start the bill payment transaction
-        try:
-            connection = connect(
-                database=db, user=user, password=password, port="5432", host="localhost"
-            )
-            connection.autocommit = False
-            cursor = connection.cursor()
-
-            # 1. Insert a new bill
-            cursor.execute(TransactionQueries.insert_bill, bill_data_dict)
-
-            # 2.  Get the new bill information
-            cursor.execute(TransactionQueries.get_new_bill)
-            new_bill_record = cursor.fetchone()
-
-            insert_payment_params = {
-                "bill_id": new_bill_record[0],
-                "amount": new_bill_record[1],
-                "first_payment": True,
-            }
-
-            # 3. Insert a new payment with the new bill information
-            cursor.execute(TransactionQueries.insert_payment, insert_payment_params)
-
-        except Exception as e:
-            connection.rollback()
-            handle_transaction_exceptions(str(e))
-        else:
-            connection.commit()
-
-            # Return some information to the user with a join
-            cursor.execute(
-                TransactionQueries.get_bills_user_creditor_join,
-                {
-                    "user_id": bill_data_dict["user_id"],
-                    "creditor_id": bill_data_dict["creditor_id"],
-                    "bill_id": new_bill_record[0],
-                },
-            )
-
-            joined_data = cursor.fetchone()
-            cursor.close()
-            return CustomBillOut(**map_record_to_dict(joined_data))
-        finally:
-            connection.close()
+        new_bill = cls.orm_model(**bill.dict())
+        db.add(new_bill)
+        db.commit()
+        db.refresh(new_bill)
+        return new_bill
 
     @classmethod
-    def update_bill(cls):
-        # TODO:  Update the bill and make a payment for it
-        # HINT TO SELF: DO a TRANSACTION.
-        pass
+    def init_bill_payment_transaction(cls, db: Session, payment: PaymentCreate):
+        bill: BillOut = cls.get_by_id(db, id=payment.bill_id)
+
+        if bill is None:
+            raise_bad_request_http_error(
+                message=f"There is no bill with the id {payment.bill_id}"
+            )
+
+        query = cls._get_by_id_query(db=db, id=payment.bill_id)
+
+        update_prop = {}
+
+        if payment.issuer_type == "user":
+            update_prop["total_paid_amount"] = add_payment_amount(
+                payment.amount, bill_amount=bill.total_paid_amount
+            )
+
+        if payment.issuer_type == "creditor":
+            update_prop["total_credit_amount"] = add_payment_amount(
+                payment.amount, bill_amount=bill.total_credit_amount
+            )
+
+        query.update(update_prop)
+
+    @classmethod 
+    def update_by_id(cls, db: Session, id: int, data: dict, model_name_repr: str):
+        return super().update_by_id(db, id, data, model_name_repr)

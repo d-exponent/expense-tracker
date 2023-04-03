@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Body, Depends, Query, Path
+from typing import Annotated
 from sqlalchemy.orm import Session
 
-from myapp.crud.bills import BillCrud, CustomBillOut, BillTransactionError
+from myapp.utils.database import db_init
+from myapp.crud.bills import BillCrud
 from myapp.utils.database import db_init
 from myapp.schema.bill_payment import BillCreate, BillOut, PaymentOut
 from myapp.utils.error_utils import (
@@ -11,12 +13,6 @@ from myapp.utils.error_utils import (
 )
 
 
-"""
-Doing this here to avoid circular import at myapp.schema.bills
-... because Bill Schema and Payment Schema depend on each other
-"""
-
-
 class BillWithPayments(BillOut):
     payments: list[PaymentOut] = []
 
@@ -24,14 +20,20 @@ class BillWithPayments(BillOut):
 router = APIRouter(prefix="/bills", tags=["bills", "debts"])
 
 
-@router.post("/", response_model=CustomBillOut, status_code=201)
-def make_bill(bill: BillCreate = Body()):
+@router.post("/", response_model=BillOut, status_code=201)
+def make_bill(
+    db: Annotated[Session, Depends(db_init)], bill_data: Annotated[BillCreate, Body()]
+):
     try:
-        return BillCrud.create(bill=bill)
-    except BillTransactionError as e:
-        raise_bad_request_http_error(str(e))
-    except Exception:
+        return BillCrud.create(db=db, bill=bill_data)
+    except Exception as e:
+        print("🧰🧰", str(e))
         raise_server_error()
+
+
+@router.patch("/")
+def update_bill():
+    pass
 
 
 @router.get("/", response_model=list[BillOut], status_code=200)
@@ -57,5 +59,3 @@ def get_bill(bill_id: int = Path(), db: Session = Depends(db_init)):
         raise_server_error()
     else:
         return bill
-
-

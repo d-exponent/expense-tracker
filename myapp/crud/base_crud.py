@@ -7,14 +7,13 @@ from myapp.utils.app_utils import remove_none_props_from_dict_recursive
 
 class Crud:
     orm_model = None
+    create_schema = None
 
     @classmethod
-    def __process(cls, item):
-        pass
-
-    @classmethod
-    def create(cls, db: Session, item):
-        pass
+    def assert_item_schema(cls, item):
+        assert isinstance(
+            item, cls.create_schema
+        ), f"{item} is not an instance of {cls.create_schema}"
 
     @classmethod
     def _get_by_id_query(cls, db: Session, id: int):

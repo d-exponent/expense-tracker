@@ -5,9 +5,8 @@ from datetime import datetime
 class BillCreate(BaseModel):
     user_id: int
     creditor_id: int
-    description: constr(strip_whitespace=True)
-    starting_amount: float
-    paid_amount: float = 0.00
+    total_credit_amount: float = 0.00
+    total_paid_amount: float = 0.00
 
 
 class BillOut(BillCreate):
@@ -19,7 +18,7 @@ class BillOut(BillCreate):
         orm_mode = True
 
 
-class BillALlInfo(BillOut):
+class BillOutAllInfo(BillOut):
     created_at: datetime
     updated_at: datetime
 
@@ -43,27 +42,27 @@ class CustomBillOut(BaseModel):
     user: UserInfo
     creditor: CreditorInfo
     starting_amount: float
-    paid_amount: float
+    total_paid_amount: float
     paid: bool
     description: str
     current_balance: float
     created_at: datetime
     last_updated: datetime
-    payment_record_id: int
+    first_payment_record_id: int
     balance_detail: constr(strip_whitespace=True)
 
 
 # PAYMENTS
 class PaymentCreate(BaseModel):
     bill_id: int
+    note: str = None
+    issuer_type: str
     amount: float
-    first_payment: bool = False
 
 
 class PaymentOut(PaymentCreate):
     id: int
     created_at: datetime
-
     owner_bill = list[BillOut]
 
     class Config:
