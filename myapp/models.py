@@ -1,52 +1,44 @@
 from myapp.database.sqlalchemy_config import Base
 
-from enum import Enum
 from sqlalchemy.orm import relationship
 from sqlalchemy.schema import Computed
 from sqlalchemy.sql.expression import text, func
-from sqlalchemy import (
-    Boolean,
-    Column,
-    Integer,
-    String,
-    ForeignKey,
-    LargeBinary,
-    Numeric,
-    DateTime,
-    CheckConstraint,
-    UniqueConstraint,
-    Enum,
-)
+import sqlalchemy as sa
 
 
 class User(Base):
     __tablename__ = "users"
     __table_args__ = (
-        UniqueConstraint("phone", "email", name="users_phone_email_key"),
-        CheckConstraint(  # Password and email must exist or not exist together
-            "(password IS NUll AND email IS NULL) OR (password IS NOT NULL AND email IS NOT NULL)",
+        sa.UniqueConstraint("phone", "email", name="users_phone_email_key"),
+        sa.CheckConstraint(  # Password and email must exist or not exist together
+            """
+            (password IS NUll AND email IS NULL)
+            OR
+            (password IS NOT NULL AND email IS NOT NULL)
+            """,
             name="users_password_email_ck",
         ),
     )
 
-    id = Column(Integer, primary_key=True)
-    first_name = Column(String(length=40), nullable=False)
-    middle_name = Column(String(length=40))
-    last_name = Column(String(length=40), nullable=False)
-    phone = Column(String(25), unique=True, nullable=False)
-    email = Column(String(70), unique=True)
-    password = Column(LargeBinary)
-    image = Column(String)
-    is_active = Column(Boolean, server_default=text("True"))
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(
-        DateTime(timezone=True),
+    id = sa.Column(sa.Integer, primary_key=True)
+    first_name = sa.Column(sa.String(length=40), nullable=False)
+    middle_name = sa.Column(sa.String(length=40))
+    last_name = sa.Column(sa.String(length=40), nullable=False)
+    phone = sa.Column(sa.String(25), unique=True, nullable=False)
+    email = sa.Column(sa.String(70), unique=True)
+    password = sa.Column(sa.LargeBinary)
+    image = sa.Column(sa.String)
+    role = sa.Column(sa.Enum("user", "admin", name="users_role"), nullable=False)
+    is_active = sa.Column(sa.Boolean, server_default=text("True"))
+    created_at = sa.Column(sa.DateTime(timezone=True), server_default=func.now())
+    updated_at = sa.Column(
+        sa.DateTime(timezone=True),
         server_default=func.now(),
         onupdate=func.now(),
     )
-    password_modified_at = Column(DateTime(timezone=True))
-    password_reset_token = Column(String)
-    password_reset_token_expires_at = Column(DateTime(timezone=True))
+    password_modified_at = sa.Column(sa.DateTime(timezone=True))
+    password_reset_token = sa.Column(sa.String)
+    password_reset_token_expires_at = sa.Column(sa.DateTime(timezone=True))
 
     user_bills = relationship("Bill", back_populates="user_owner")
 
@@ -62,32 +54,32 @@ class User(Base):
 class Creditor(Base):
     __tablename__ = "creditors"
     __table_args__ = (
-        UniqueConstraint(
+        sa.UniqueConstraint(
             "phone",
             "account_number",
             name="creditors_phone_account_number_key",
         ),
-        CheckConstraint(
+        sa.CheckConstraint(
             "account_number IS NULL OR bank_name IS NOT NULL",
             name="creditors_account_number_bank_ck",
         ),
     )
 
-    id = Column(Integer, primary_key=True)
-    name = Column(String(100), nullable=False, unique=True)
-    description = Column(String(300))
-    street_address = Column(String)
-    city = Column(String(40), nullable=False)
-    state = Column(String(40), nullable=False)
-    country = Column(String(40), server_default="Nigeria")
-    phone = Column(String(25), nullable=False, unique=True)
-    email = Column(String(70), unique=True)
-    bank_name = Column(String(100))
-    account_number = Column(String)
+    id = sa.Column(sa.Integer, primary_key=True)
+    name = sa.Column(sa.String(100), nullable=False, unique=True)
+    description = sa.Column(sa.String(300))
+    street_address = sa.Column(sa.String)
+    city = sa.Column(sa.String(40), nullable=False)
+    state = sa.Column(sa.String(40), nullable=False)
+    country = sa.Column(sa.String(40), server_default="Nigeria")
+    phone = sa.Column(sa.String(25), nullable=False, unique=True)
+    email = sa.Column(sa.String(70), unique=True)
+    bank_name = sa.Column(sa.String(100))
+    account_number = sa.Column(sa.String)
 
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(
-        DateTime(timezone=True),
+    created_at = sa.Column(sa.DateTime(timezone=True), server_default=func.now())
+    updated_at = sa.Column(
+        sa.DateTime(timezone=True),
         server_default=func.now(),
         onupdate=func.now(),
     )
@@ -104,53 +96,50 @@ class Creditor(Base):
 class Bill(Base):
     __tablename__ = "bills"
     __table_args__ = (
-        UniqueConstraint(
+        sa.UniqueConstraint(
             "user_id", "creditor_id", name="bills_user_id_creditor_id_key"
         ),
     )
 
-    id = Column(Integer, primary_key=True)
-    user_id = Column(
-        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    id = sa.Column(sa.Integer, primary_key=True)
+    user_id = sa.Column(
+        sa.Integer, sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
-    creditor_id = Column(
-        Integer,
-        ForeignKey("creditors.id", ondelete="CASCADE"),
+    creditor_id = sa.Column(
+        sa.Integer,
+        sa.ForeignKey("creditors.id", ondelete="CASCADE"),
         nullable=False,
     )
-    total_credit_amount = Column(Numeric(10, 2), server_default=text("0.00"))
-    total_paid_amount = Column(Numeric(10, 2), server_default=text("0.00"))
-    current_balance = Column(
-        Numeric(10, 2), Computed("total_paid_amount - total_credit_amount")
+    total_credit_amount = sa.Column(sa.Numeric(10, 2), server_default=text("0.00"))
+    total_paid_amount = sa.Column(sa.Numeric(10, 2), server_default=text("0.00"))
+    current_balance = sa.Column(
+        sa.Numeric(10, 2), Computed("total_paid_amount - total_credit_amount")
     )
-    paid = Column(Boolean, Computed("total_paid_amount >= total_credit_amount"))
+    paid = sa.Column(sa.Boolean, Computed("total_paid_amount >= total_credit_amount"))
 
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    created_at = sa.Column(sa.DateTime(timezone=True), server_default=func.now())
+    updated_at = sa.Column(
+        sa.DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
 
     payments = relationship("Payment", back_populates="owner_bill")
     user_owner = relationship("User", back_populates="user_bills")
 
 
-class IssuerEnum(Enum):
-    user: str = ("user",)
-    Creditor: str = ("creditor",)
-
-
 class Payment(Base):
     __tablename__ = "payments"
 
-    id = Column(Integer, primary_key=True)
-    bill_id = Column(
-        Integer,
-        ForeignKey("bills.id", ondelete="CASCADE"),
+    id = sa.Column(sa.Integer, primary_key=True)
+    bill_id = sa.Column(
+        sa.Integer,
+        sa.ForeignKey("bills.id", ondelete="CASCADE"),
         nullable=False,
     )
-    note = Column(String(150))
-    issuer_type = Column(Enum('user', 'creditor', name="issuer_type"), nullable=False)
-    amount = Column(Numeric(10, 2), nullable=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    note = sa.Column(sa.String(150))
+    issuer = sa.Column(
+        sa.Enum("user", "creditor", name="payments_issuer"), nullable=False
+    )
+    amount = sa.Column(sa.Numeric(10, 2), nullable=False)
+    created_at = sa.Column(sa.DateTime(timezone=True), server_default=func.now())
 
     owner_bill = relationship("Bill", back_populates="payments")

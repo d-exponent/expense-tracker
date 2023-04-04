@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Body
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
+from typing import Annotated
 
 from myapp.utils.error_messages import UserErrorMessages
 from myapp.schema.bill_payment import BillOut
@@ -45,6 +46,7 @@ def create_users(user: UserCreate, db: Session = Depends(db_init)):
         raise_server_error()
 
 
+# THIS PATCH OPERATION DOESNOT UPDATE THE NAME AND EMAIL FEILDS
 # UPDATE USERS NAMES
 @router.patch("/{user_id}", response_model=UserOut, status_code=200)
 def update_user(
@@ -104,3 +106,12 @@ def get_user(
         raise HTTPException(status_code=404, detail="User not found")
 
     return user
+
+
+@router.delete("/{user_id}", status_code=204)
+def delete_user(
+    db: Annotated[Session, Depends(db_init)], user_id: Annotated[int, Path()]
+):
+    UserCrud.delete_by_id(db=db, id=user_id)
+
+    return {"message": "Deleted successfully"}

@@ -16,7 +16,7 @@ class PaymentCrud(Crud):
     def __process(cls, payment: PaymentCreate):
         cls.assert_item_schema(payment)
 
-        if payment.issuer_type != "user" and payment.issuer_type != "creditor":
+        if payment.issuer != "user" and payment.issuer != "creditor":
             raise_bad_request_http_error(
                 message="A payment must have an issuer as a user or a creditor"
             )

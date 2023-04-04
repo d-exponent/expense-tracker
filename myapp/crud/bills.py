@@ -1,5 +1,3 @@
-from psycopg2 import connect
-from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from myapp.crud.base_crud import Crud
@@ -11,6 +9,12 @@ from myapp.utils.error_utils import raise_bad_request_http_error
 def add_payment_amount(payment_amount: float, bill_amount) -> float:
     return payment_amount + float(bill_amount)
 
+"""
+
+(psycopg2.errors.ForeignKeyViolation) insert or update on table "bills" violates foreign key co  nstra
+int "bills_user_id_fkey"
+DETAIL:  Key (user_id)=(1) is not present in table "users"
+"""
 
 class BillCrud(Crud):
     orm_model = BillOrm
@@ -39,18 +43,14 @@ class BillCrud(Crud):
 
         update_prop = {}
 
-        if payment.issuer_type == "user":
+        if payment.issuer == "user":
             update_prop["total_paid_amount"] = add_payment_amount(
                 payment.amount, bill_amount=bill.total_paid_amount
             )
 
-        if payment.issuer_type == "creditor":
+        if payment.issuer == "creditor":
             update_prop["total_credit_amount"] = add_payment_amount(
                 payment.amount, bill_amount=bill.total_credit_amount
             )
 
         query.update(update_prop)
-
-    @classmethod 
-    def update_by_id(cls, db: Session, id: int, data: dict, model_name_repr: str):
-        return super().update_by_id(db, id, data, model_name_repr)

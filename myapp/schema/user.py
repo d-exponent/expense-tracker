@@ -52,10 +52,15 @@ class UserUpdate(UserUtils, BaseModel):
             self.raise_data_error_exception()
 
 
+class UserUpdateAdmin(UserUpdate):
+    role: str = None
+
+
 class UserBase(UserUpdate):
     first_name: constr(max_length=40, strip_whitespace=True)
     middle_name: constr(max_length=40, strip_whitespace=True) = None
     last_name: constr(max_length=40, strip_whitespace=True)
+    role: str
     image: str = None
     phone: constr(max_length=25, strip_whitespace=True)
     email: EmailStr | None

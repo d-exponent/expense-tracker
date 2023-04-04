@@ -26,8 +26,7 @@ def make_bill(
 ):
     try:
         return BillCrud.create(db=db, bill=bill_data)
-    except Exception as e:
-        print("🧰🧰", str(e))
+    except Exception:
         raise_server_error()
 
 

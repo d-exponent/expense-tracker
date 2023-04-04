@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Body, Depends, Path, Query
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
+from typing import Annotated
 
 from myapp.schema.creditor import CreditorCreate, CreditorOut, CreditorUpdate
 from myapp.crud.creditors import CreditorCrud
@@ -110,3 +111,30 @@ def get_creditor(
         raise HTTPException(status_code=404, detail="Could not find this creditor")
 
     return creditor
+
+
+"""
+TODO: Document that the patch operation doesn't update the name and email fields
+"""
+
+@router.patch("/{creditor_id}", response_model=CreditorOut)
+def update_creditor(
+    db: Annotated[Session, Depends(db_init)],
+    creditor_id: Annotated[int, Path()],
+    creditor_data: Annotated[CreditorUpdate, Body()],
+):
+    try:
+        return CreditorCrud.update_by_id(
+            db=db, id=creditor_id, data=creditor_data, model_name_repr="creditor"
+        )
+    except Exception:
+        raise_server_error()
+
+
+@router.delete("/{creditor_id}", status_code=204)
+def delete_user(
+    db: Annotated[Session, Depends(db_init)], creditor_id: Annotated[int, Path()]
+):
+    CreditorCrud.delete_by_id(db=db, id=creditor_id)
+
+    return {"message": "Deleted successfully"}

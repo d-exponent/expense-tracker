@@ -56,7 +56,7 @@ class CustomBillOut(BaseModel):
 class PaymentCreate(BaseModel):
     bill_id: int
     note: str = None
-    issuer_type: str
+    issuer: str
     amount: float
 
 
