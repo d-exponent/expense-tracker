@@ -2,12 +2,12 @@ from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from myapp.utils.error_messages import UserErrorMessages
-from myapp.schema.bill import BillOut
-from myapp.utils.database import db_dependency
-from myapp.schema.user import UserCreate, UserOut
-from myapp.crud.users import UserCrud
-from myapp.utils.error_utils import (
+from app.utils.error_messages import UserErrorMessages
+from app.schema.bill import BillOut
+from app.utils.database import db_dependency
+from app.schema.user import UserCreate, UserOut
+from app.crud.users import UserCrud
+from app.utils.error_utils import (
     raise_server_error,
     handle_empty_records,
 )

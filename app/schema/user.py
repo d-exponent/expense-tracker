@@ -1,10 +1,5 @@
 from pydantic import BaseModel, EmailStr, constr
-from fastapi import HTTPException
 from datetime import datetime
-
-
-from myapp.schema.bill import BillOut
-from myapp.schema.payment import PaymentOut
 
 
 """
@@ -18,35 +13,30 @@ USER PASSWORD REGEX REQUIREMENTS
 password_reg = "^(?=(.*[A-Z]){1,})(?=(.*[0-9]){1,})(?=(.*[!@#$%^&*()\-__+.]){1,}).{8,}$"
 
 
-class UserLogin(BaseModel):
-    id: int | None
-    email: EmailStr | None
-    phone: str | None
+class UserLoginEmailPassword(BaseModel):
+    email_address: EmailStr | None
     password: str
 
-    def validate_schema(self):
-        """
-        Trows an HTTPException if the object doesn't have
-        a name or an email or a phone attribute as not None
-        """
-        if not any([self.email, self.phone, self.id]):
-            raise HTTPException(
-                status_code=400,
-                detail="Provide the email address or phone number or id of the user",
-            )
+
+class UserLoginPhoneNumber(BaseModel):
+    phone_number: str | None
+
+
+class UserLoginId(BaseModel):
+    id: int | None
 
 
 class UserBase(BaseModel):
     first_name: constr(max_length=40, strip_whitespace=True)
     middle_name: constr(max_length=40, strip_whitespace=True) = None
     last_name: constr(max_length=40, strip_whitespace=True)
-    phone: constr(max_length=25, strip_whitespace=True)
-    email: EmailStr | None
-    image: str = None
+    phone_number: constr(max_length=25, strip_whitespace=True)
+    email_address: EmailStr | None
+    image_url: str = None
 
 
 class UserCreate(UserBase):
-    password: constr(regex=password_reg) | bytes = None
+    password: constr(regex=password_reg)
 
 
 class UserOut(UserBase):
@@ -60,6 +50,7 @@ class UserOut(UserBase):
 class UserAllInfo(UserOut):
     is_active: bool = True
     created_at: datetime
+    verified: bool
     updated_at: datetime
     password_modified_at: datetime = None
     password_reset_token: str = None

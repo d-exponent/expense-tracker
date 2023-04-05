@@ -2,10 +2,10 @@ from fastapi import APIRouter, HTTPException, Body, Depends, Path, Query
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from myapp.schema.creditor import CreditorCreate, CreditorOut
-from myapp.crud.creditors import CreditorCrud
-from myapp.utils.database import db_dependency
-from myapp.utils.error_utils import (
+from app.schema.creditor import CreditorCreate, CreditorOut
+from app.crud.creditors import CreditorCrud
+from app.utils.database import db_dependency
+from app.utils.error_utils import (
     handle_empty_records,
     raise_server_error,
 )

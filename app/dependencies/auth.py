@@ -8,8 +8,8 @@ from datetime import timedelta, datetime
 from fastapi.security import OAuth2PasswordBearer
 from fastapi import Depends, HTTPException
 
-from myapp.crud.users import UserCrud
-from myapp.schema.user import UserAllInfo, UserLogin
+from app.crud.users import UserCrud
+from app.schema import user as u
 
 
 def raise_credentials_exception(
@@ -43,9 +43,10 @@ LOGOUT_COOKIE_EXPIRES_AFTER = get_datetime_timestamp_secs(
 )
 
 
-class TokenPayload(UserLogin):
+class TokenPayload(u.UserLoginPhoneNumber):
     exp: int | float
     iat: int | float
+
 
 
 class UserData(BaseModel):

@@ -1,5 +1,5 @@
 from psycopg2 import connect
-from myapp.database.config import user, password, db
+from app.database.config import user, password, db
 
 
 connection = connect(

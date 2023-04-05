@@ -1,10 +1,10 @@
 from psycopg2 import connect
 
-from myapp.crud.base_crud import Crud
-from myapp.database.config import user, password, db
-from myapp.models import Bill as BillOrm
-from myapp.schema.bill import BillCreate, CustomBillOut
-from myapp.crud.utils.bills_utils import (
+from app.crud.base_crud import Crud
+from app.database.config import user, password, db
+from app.models import Bill as BillOrm
+from app.schema.bill import BillCreate, CustomBillOut
+from app.crud.utils.bills_utils import (
     BILL_TYPES,
     map_record_to_dict,
     handle_transaction_exceptions,

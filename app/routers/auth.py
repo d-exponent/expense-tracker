@@ -3,10 +3,10 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from fastapi import APIRouter, Body, Response, Depends
 
-from myapp.schema.user import UserOut
-from myapp.utils.database import db_dependency
-from myapp.utils.app_utils import remove_none_properties
-from myapp.dependencies.auth import (
+from app.schema.user import UserOut
+from app.utils.database import db_dependency
+from app.utils.app_utils import remove_none_properties
+from app.dependencies.auth import (
     UserLogin,
     create_access_token,
     authenticate_user,

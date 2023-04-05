@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Body, Depends, Query, Path
 from sqlalchemy.orm import Session
 
-from myapp.crud.bills import BillCrud, CustomBillOut, BillTransactionError
-from myapp.utils.database import db_dependency
-from myapp.schema.bill import BillCreate, BillOut
-from myapp.schema.payment import PaymentOut
-from myapp.utils.error_utils import (
+from app.crud.bills import BillCrud, CustomBillOut, BillTransactionError
+from app.utils.database import db_dependency
+from app.schema.bill import BillCreate, BillOut
+from app.schema.payment import PaymentOut
+from app.utils.error_utils import (
     raise_server_error,
     raise_bad_request_http_error,
     handle_empty_records,

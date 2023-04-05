@@ -2,11 +2,11 @@ from fastapi import APIRouter, Depends, Query, Path
 from sqlalchemy.orm import Session
 
 
-from myapp.utils.database import db_dependency
-from myapp.schema.payment import PaymentOut
-from myapp.schema.bill import BillOut
-from myapp.crud.payments import PaymentCrud
-from myapp.utils.error_utils import (
+from app.utils.database import db_dependency
+from app.schema.payment import PaymentOut
+from app.schema.bill import BillOut
+from app.crud.payments import PaymentCrud
+from app.utils.error_utils import (
     raise_server_error,
     handle_empty_records,
 )

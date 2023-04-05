@@ -1,8 +1,8 @@
 from sqlalchemy.orm import Session
 
-from myapp.crud.base_crud import Crud
-from myapp.models import Creditor as CreditorOrm
-from myapp.schema.creditor import CreditorCreate
+from app.crud.base_crud import Crud
+from app.models import Creditor as CreditorOrm
+from app.schema.creditor import CreditorCreate
 
 
 def to_title_case(str) -> str:
