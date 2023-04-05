@@ -48,9 +48,12 @@ class TokenPayload(u.UserLoginPhoneNumber):
     iat: int | float
 
 
+class UserLoginPhoneNumber(BaseModel):
+    pass
+
 
 class UserData(BaseModel):
-    user: UserAllInfo
+    user: UserAllOutInfo
     plain_password = str
 
 
@@ -84,54 +87,53 @@ def decode_access_token(access_token: str) -> dict:
         raise_credentials_exception()
 
 
-def get_user(db: Session, user_data: UserLogin | TokenPayload) -> UserAllInfo:
-    """Returns a User object from the database or None"""
+# def get_user(db: Session, user_data):
+#     """Returns a User object from the database or None"""
 
-    if user_data.id:
-        return UserCrud.get_by_id(db=db, id=user_data.id)
+#     if user_data.id:
+#         return UserCrud.get_by_id(db=db, id=user_data.id)
 
-    if user_data.phone:
-        return UserCrud.get_user_by_phone(db=db, phone=user_data.phone)
+#     if user_data.phone:
+#         return UserCrud.get_user_by_phone(db=db, phone=user_data.phone)
 
-    if user_data.email:
-        return UserCrud.get_user_by_email(db=db, email=user_data.email)
+#     if user_data.email:
+#         return UserCrud.get_user_by_email(db=db, email=user_data.email)
 
 
-def authenticate_user(db: Session, user_data: UserLogin) -> UserAllInfo:
+def authenticate_password(plain_password: str, hashed_password: bytes):
     """
-    Returns a user if the user is authenticated\n
-    Throws a 401 if the user is not authenticated or None
+    Returns True if the user is authenticated
+    Else returns False
     """
 
-    user = get_user(db, user_data)
-    if user is None:
-        raise_credentials_exception(detail="Incorrect login credentials")
-
-    password_bytes = user_data.password.encode(config("ENCODE_FMT"))
-    is_valid_password = checkpw(password_bytes, user.password)
+    plain_password_bytes = plain_password.encode(config("ENCODE_FMT"))
+    is_valid_password = checkpw(plain_password_bytes, hashed_password)
 
     if not is_valid_password:
-        raise_credentials_exception(detail="Incorrect password")
+        return False
 
-    return UserAllInfo.from_orm(user)
-
-
-# DEPENDENCIES --------------------------------
-def get_token_payload(access_token: Annotated[str, Depends(oauth_scheme)]):
-    """
-    Returns a token payload\n
-    Extracts access token from Authorization header
-    """
-    token_data = decode_access_token(access_token)
-
-    return TokenPayload(**token_data)
+    return True
 
 
-def get_user_from_token_payload(
-    db: Session,
-    token_payload: Annotated[TokenPayload, Depends(get_token_payload)],
-) -> UserData:
-    return get_user(db, token_payload)
+
+
+
+# # DEPENDENCIES --------------------------------
+# def get_token_payload(access_token: Annotated[str, Depends(oauth_scheme)]):
+#     """
+#     Returns a token payload\n
+#     Extracts access token from Authorization header
+#     """
+#     token_data = decode_access_token(access_token)
+
+#     return TokenPayload(**token_data)
+
+
+# def get_user_from_token_payload(
+#     db: Session,
+#     token_payload: Annotated[TokenPayload, Depends(get_token_payload)],
+# ) -> UserData:
+#     return get_user(db, token_payload)
 
 
 # def get_active_user(

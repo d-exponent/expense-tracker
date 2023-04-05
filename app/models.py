@@ -26,8 +26,13 @@ class User(Base):
     last_name = sa.Column(sa.String(length=40), nullable=False)
     phone_number = sa.Column(sa.String(25), unique=True, nullable=False)
     email_address = sa.Column(sa.String(70), unique=True)
+    verified = sa.Column(sa.Boolean(), server_default=text("False"))
+    mobile_otp = sa.Column(sa.String)
+    mobile_otp_expires_at = sa.Column(
+        sa.DateTime(timezone=True),
+    )
     password = sa.Column(sa.LargeBinary)
-    image = sa.Column(sa.String)
+    image_url = sa.Column(sa.String)
     is_active = sa.Column(sa.Boolean, server_default=text("True"))
     created_at = sa.Column(sa.DateTime(timezone=True), server_default=func.now())
     updated_at = sa.Column(

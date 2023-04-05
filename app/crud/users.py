@@ -1,10 +1,13 @@
 from sqlalchemy.orm import Session
+from datetime import datetime, timedelta
+from fastapi import HTTPException
 from decouple import config
 from bcrypt import gensalt, hashpw
 
 from app.schema.user import UserCreate, UserAllInfo
 from app.crud.base_crud import Crud
 from app.models import User as UserOrm
+from app.utils.app_utils import add_minutes
 
 
 def hash_password(password: str) -> bytes:
@@ -50,5 +53,25 @@ class UserCrud(Crud):
     @classmethod
     def get_user_by_email(cls, db: Session, email: str):
         return (
-            db.query(cls.orm_model).filter(cls.orm_model.email_address == email.lower()).first()
+            db.query(cls.orm_model)
+            .filter(cls.orm_model.email_address == email.lower())
+            .first()
+        )
+
+    @classmethod
+    def get_user_by_otp(cls, db: Session, otp: str):
+        return db.query(cls.orm_model).filter(cls.orm_model.mobile_otp == otp).first()
+
+    @classmethod
+    def update_user_otp(cls, db: Session, phone: str, otp: str):
+        query = db.query(cls.orm_model).filter(cls.orm_model.phone_number == phone)
+
+        if query.first() is None:
+            raise HTTPException(status_code=404, detail="This user does not exist")
+
+        query.update(
+            {
+                "mobile_otp": otp,
+                "mobile_otp_expires_at": add_minutes(mins=5),
+            }
         )

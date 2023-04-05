@@ -1,59 +1,52 @@
 from typing import Annotated
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
-from fastapi import APIRouter, Body, Response, Depends
-
-from app.schema.user import UserOut
+from fastapi import APIRouter, Depends, Path, Response, HTTPException
+from random import randint
+from app.crud.users import UserCrud
 from app.utils.database import db_dependency
-from app.utils.app_utils import remove_none_properties
-from app.dependencies.auth import (
-    UserLogin,
-    create_access_token,
-    authenticate_user,
-    LOGIN_COOKIE_EXPIRES_AFTER,
-    LOGOUT_COOKIE_EXPIRES_AFTER,
-    ACEESS_TOKEN_COOKIE_KEY,
-)
+from app.utils.sms import SMSMessenger
+from app.dependencies.auth import LOGOUT_COOKIE_EXPIRES_AFTER, ACEESS_TOKEN_COOKIE_KEY
+
+from app.routers import login
 
 
-class LoginSuccess(BaseModel):
-    user: UserOut
-    access_token: str
-    token_type: str
-    message: str
+def raise_404_exception(msg: str = "Not Found"):
+    raise HTTPException(status_code=404, detail=msg)
+
+
+def generate_otp(digits_num: int = 4):
+    otp_digits = [str(randint(0, 9)) for _ in range(0, digits_num)]
+    return "".join(otp_digits)
 
 
 router = APIRouter(prefix="/auth", tags=["auth", "authenticcation"])
+router.include_router(login.router)
 
 
-@router.post("/login", response_model=LoginSuccess, status_code=201)
-def login(
+@router.get("/mobile_token/{phone_number}")
+def get_otp_sms(
     db: Annotated[Session, Depends(db_dependency)],
-    user_data: Annotated[UserLogin, Body()],
-    response: Response,
+    phone_number: Annotated[str, Path()],
 ):
-    user_data.validate_schema()
-    db_user = authenticate_user(db=db, user_data=user_data)
+    user = UserCrud.get_user_by_phone(db, phone=phone_number)
 
-    user_data.id = db_user.id
-    filtered_user_data = remove_none_properties(user_data.dict())
-    access_token = create_access_token(filtered_user_data)
+    if user is None:
+        raise_404_exception("This user does not exist")
 
-    # Send a cookie with the access token
-    response.set_cookie(
-        key=ACEESS_TOKEN_COOKIE_KEY,
-        value=access_token,
-        httponly=True,
-        secure=True,
-        max_age=LOGIN_COOKIE_EXPIRES_AFTER,
-    )
+    user_otp = generate_otp(5)
 
-    return LoginSuccess(
-        access_token=access_token,
-        token_type="Bearer",
-        user=db_user,
-        message="Login successful",
-    )
+    # Update the user
+    UserCrud.update_user_otp(db=db, phone=phone_number, otp=user_otp)
+
+    try:
+        user_name = f"{user.first_name} {user.last_name}"
+        SMSMessenger(user_name, user.phone_number).send_login_otp_sms(user_otp)
+        return {"message": "Otp has been sent succcesfully! Expires in 5 minutes"}
+    except Exception:
+        raise HTTPException(
+            status_code=500,
+            detail="Something went wrong in sending the otp. Please try again",
+        )
 
 
 @router.get("/logout")

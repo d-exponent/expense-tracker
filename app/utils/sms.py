@@ -1,6 +1,5 @@
 from decouple import config
 from twilio.rest import Client
-import time
 
 account_sid = config("TWILIO_ACCOUNT_SID")
 auth_token = config("TWILIO_AUTH_TOKEN")
@@ -37,11 +36,8 @@ class SMSMessenger:
         signup_msg = signup_sms.replace("<otp>", otp)
         sms_message = add_header_greeting(name=self.__receiver_name, msg=signup_msg)
         self.send_sms(message=sms_message)
-        time.sleep(4)
-        return self
 
     def send_login_otp_sms(self, otp: str):
         login_msg = login_sms.replace("<otp>", otp)
         sms_message = add_header_greeting(name=self.__receiver_name, msg=login_msg)
         self.send_sms(message=sms_message)
-        return self

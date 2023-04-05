@@ -1,6 +1,8 @@
 from pydantic import BaseModel, EmailStr, constr
 from datetime import datetime
 
+from app.dependencies.auth import authenticate_user_password
+
 
 """
 USER PASSWORD REGEX REQUIREMENTS
@@ -11,6 +13,7 @@ USER PASSWORD REGEX REQUIREMENTS
 
 """
 password_reg = "^(?=(.*[A-Z]){1,})(?=(.*[0-9]){1,})(?=(.*[!@#$%^&*()\-__+.]){1,}).{8,}$"
+e_164_fmt_regex = "^\+[1-9]\d{1,14}$"
 
 
 class UserLoginEmailPassword(BaseModel):
@@ -19,7 +22,7 @@ class UserLoginEmailPassword(BaseModel):
 
 
 class UserLoginPhoneNumber(BaseModel):
-    phone_number: str | None
+    phone_number: constr(max_length=25, regex=e_164_fmt_regex)
 
 
 class UserLoginId(BaseModel):
@@ -48,6 +51,8 @@ class UserOut(UserBase):
 
 # Password must never ever ever ever be sent from our server
 class UserAllInfo(UserOut):
+    mobile_otp: str
+    mobile_otp_expires_at: datetime = None
     is_active: bool = True
     created_at: datetime
     verified: bool
@@ -55,6 +60,7 @@ class UserAllInfo(UserOut):
     password_modified_at: datetime = None
     password_reset_token: str = None
     password_reset_token_expires_at: datetime = None
+
 
     class Config:
         orm_mode = True

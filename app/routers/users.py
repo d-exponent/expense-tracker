@@ -33,7 +33,7 @@ router = APIRouter(prefix="/users", tags=["users"])
 # CREATE AND PERSIT A NEW USER TO DB IF NOT EXISTS
 @router.post("/", response_model=UserOut, status_code=201)
 def create_users(user: UserCreate, db: Session = Depends(db_dependency)):
-    db_user = UserCrud.get_user_by_phone(db, user.phone)
+    db_user = UserCrud.get_user_by_phone(db, user.phone_number)
     if db_user:
         raise HTTPException(status_code=400, detail=UserErrorMessages.already_exists)
 
