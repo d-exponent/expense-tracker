@@ -1,5 +1,4 @@
 from sqlalchemy.orm import Session
-from fastapi import HTTPException
 from decouple import config
 from bcrypt import gensalt, hashpw
 
@@ -8,13 +7,16 @@ from app.crud.base_crud import Crud
 from app.models import User as UserOrm
 
 
-def hash_password(password: str) -> bytes:
-    password_bytes = password.encode(config("ENCODE_FMT"))
-    return hashpw(password_bytes, gensalt())
+
 
 
 class UserCrud(Crud):
     orm_model = UserOrm
+
+    @classmethod
+    def __hash_password(cls, password: str) -> bytes:
+        password_bytes = password.encode(config("ENCODE_FMT"))
+        return hashpw(password_bytes, gensalt())
 
     @classmethod
     def __process(cls, user: UserCreate):
@@ -23,7 +25,7 @@ class UserCrud(Crud):
         user.last_name = user.last_name.title()
 
         if user.password:
-            user.password = cls._hash_password(user.password)
+            user.password = cls.__hash_password(user.password)
 
         if user.email_address:
             user.email_address = user.email_address.lower()
@@ -38,20 +40,6 @@ class UserCrud(Crud):
         db.commit()
         db.refresh(new_user)
         return new_user
-
-    @classmethod
-    def __get_user_by_phone_query(cls, db: Session, phone: str):
-        return db.query(cls.orm_model).filter(cls.orm_model.phone_number == phone)
-
-    @classmethod
-    def __get_user_by_otp_query(cls, db: Session, otp: str):
-        return db.query(cls.orm_model).filter(cls.orm_model.mobile_otp == otp)
-
-    @classmethod
-    def __get_user_by_email_query(cls, db: Session, email: str):
-        return db.query(cls.orm_model).filter(
-            cls.orm_model.email_address == email.lower()
-        )
 
     @classmethod
     def __get_user_by_phone_query(cls, db: Session, phone: str):

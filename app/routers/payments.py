@@ -4,18 +4,10 @@ from pydantic import Field
 from typing import Annotated
 
 
-<<<<<<< HEAD:myapp/routers/payments.py
-from myapp.utils.database import db_init
-from myapp.schema.bill_payment import BillOut, PaymentOut, PaymentCreate
-from myapp.crud.payments import PaymentCrud
-from myapp.utils.error_utils import (
-=======
-from app.utils.database import db_dependency
-from app.schema.payment import PaymentOut
-from app.schema.bill import BillOut
+from app.utils.database import db_init
+from app.schema.bill_payment import BillOut, PaymentOut, PaymentCreate
 from app.crud.payments import PaymentCrud
 from app.utils.error_utils import (
->>>>>>> otp:app/routers/payments.py
     raise_server_error,
     handle_empty_records,
 )

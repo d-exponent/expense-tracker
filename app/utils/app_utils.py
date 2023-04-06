@@ -1,8 +1,18 @@
 from datetime import datetime, timedelta
 
-def remove_none_properties(dict_data: dict) -> dict:
-    to_filter = dict_data.copy()
-    filtered = {key: value for key, value in to_filter.items() if value is not None}
+
+def remove_none_props_from_dict_recursive(data: dict) -> dict:
+    data_copy = data.copy()
+
+    filtered = {}
+
+    for key, value in data_copy.items():
+        if value is not None:
+            if isinstance(value, dict):
+                filtered[key] = remove_none_props_from_dict_recursive(value)
+            else:
+                filtered[key] = value
+
     return filtered
 
 

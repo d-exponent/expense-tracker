@@ -3,17 +3,10 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from typing import Annotated
 
-<<<<<<< HEAD:myapp/routers/creditors.py
-from myapp.schema.creditor import CreditorCreate, CreditorOut, CreditorUpdate
-from myapp.crud.creditors import CreditorCrud
-from myapp.utils.database import db_init
-from myapp.utils.error_utils import (
-=======
-from app.schema.creditor import CreditorCreate, CreditorOut
+from app.schema.creditor import CreditorCreate, CreditorOut, CreditorUpdate
 from app.crud.creditors import CreditorCrud
-from app.utils.database import db_dependency
+from app.utils.database import db_init
 from app.utils.error_utils import (
->>>>>>> otp:app/routers/creditors.py
     handle_empty_records,
     raise_server_error,
 )
@@ -123,6 +116,7 @@ def get_creditor(
 """
 TODO: Document that the patch operation doesn't update the name and email fields
 """
+
 
 @router.patch("/{creditor_id}", response_model=CreditorOut)
 def update_creditor(

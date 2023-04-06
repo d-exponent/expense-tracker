@@ -26,6 +26,13 @@ class UserBase(BaseModel):
     role: str
 
 
+class UserUpdate(BaseModel):
+    first_name: constr(max_length=40, strip_whitespace=True) = None
+    middle_name: constr(max_length=40, strip_whitespace=True) = None
+    last_name: constr(max_length=40, strip_whitespace=True) = None
+    image_url: constr(strip_whitespace=True) = None
+
+
 class UserCreate(UserBase):
     password: constr(regex=password_reg)
 

@@ -3,21 +3,12 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from typing import Annotated
 
-<<<<<<< HEAD:myapp/routers/users.py
-from myapp.utils.error_messages import UserErrorMessages
-from myapp.schema.bill_payment import BillOut
-from myapp.utils.database import db_init
-from myapp.schema.user import UserCreate, UserOut, UserUpdate
-from myapp.crud.users import UserCrud
-from myapp.utils.error_utils import (
-=======
 from app.utils.error_messages import UserErrorMessages
-from app.schema.bill import BillOut
-from app.utils.database import db_dependency
-from app.schema.user import UserCreate, UserOut
+from app.schema.bill_payment import BillOut
+from app.utils.database import db_init
+from app.schema.user import UserCreate, UserOut, UserUpdate
 from app.crud.users import UserCrud
 from app.utils.error_utils import (
->>>>>>> otp:app/routers/users.py
     raise_server_error,
     handle_empty_records,
 )
@@ -42,13 +33,8 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 # CREATE AND PERSIT A NEW USER TO DB IF NOT EXISTS
 @router.post("/", response_model=UserOut, status_code=201)
-<<<<<<< HEAD:myapp/routers/users.py
 def create_users(user: UserCreate, db: Session = Depends(db_init)):
-    db_user = UserCrud.get_user_by_phone(db, user.phone)
-=======
-def create_users(user: UserCreate, db: Session = Depends(db_dependency)):
     db_user = UserCrud.get_user_by_phone(db, user.phone_number)
->>>>>>> otp:app/routers/users.py
     if db_user:
         raise HTTPException(status_code=400, detail=UserErrorMessages.already_exists)
 

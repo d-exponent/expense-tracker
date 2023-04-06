@@ -1,27 +1,14 @@
 from sqlalchemy.orm import Session
 
-from myapp.crud.base_crud import Crud
-from myapp.database.config import user, password, db
-from myapp.models import Bill as BillOrm
-from myapp.schema.bill import BillCreate, CustomBillOut
-from myapp.crud.utils.bills_utils import (
-    BILL_TYPES,
-    map_record_to_dict,
-    handle_transaction_exceptions,
-    TransactionQueries,
-    BillTransactionError,  # Just so the bill router can accessed from this module
-)
+from app.crud.base_crud import Crud
+from app.models import Bill as BillOrm
+from app.schema.bill_payment import BillCreate, BillOutAllInfo, PaymentCreate, BillOut
+from app.utils.error_utils import raise_bad_request_http_error
 
 
 def add_payment_amount(payment_amount: float, bill_amount) -> float:
     return payment_amount + float(bill_amount)
 
-"""
-
-(psycopg2.errors.ForeignKeyViolation) insert or update on table "bills" violates foreign key co  nstra
-int "bills_user_id_fkey"
-DETAIL:  Key (user_id)=(1) is not present in table "users"
-"""
 
 class BillCrud(Crud):
     orm_model = BillOrm

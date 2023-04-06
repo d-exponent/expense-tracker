@@ -45,7 +45,7 @@ class Crud:
     @classmethod
     def delete_by_id(cls, db: Session, id: int):
         query = cls._get_by_id_query(db, id)
-       
+
         if query.first() is None:
             raise_bad_request_http_error(message="This record doesn't exist.")
 

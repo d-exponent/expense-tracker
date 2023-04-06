@@ -1,13 +1,11 @@
 from typing import Annotated
-import pytz
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from datetime import datetime, timezone
-from fastapi import APIRouter, Body, Depends, Path, Response, HTTPException
+from datetime import datetime
+from fastapi import APIRouter, Body, Depends, Response, HTTPException, Request
 from app.schema.user import UserAuthSuccess
 from app.crud.users import UserCrud
-from app.utils.database import db_dependency
-from app.utils.error_utils import raise_bad_request_http_error
+from app.utils.database import db_init
 from app.utils.auth_utils import (
     create_access_token,
     authenticate_password,
@@ -22,7 +20,7 @@ router = APIRouter(prefix="/login")
 
 @router.post("/", response_model=UserAuthSuccess, status_code=201)
 def login_with_email_password(
-    db: Annotated[Session, Depends(db_dependency)],
+    db: Annotated[Session, Depends(db_init)],
     email: Annotated[str, Body()],
     password: Annotated[str, Body()],
     response: Response,
@@ -56,13 +54,14 @@ class UserLoginOtp(BaseModel):
     otp: str
 
 
-@router.put("/otp")
+@router.get("/otp")
 def validate_user_otp(
-    db: Annotated[Session, Depends(db_dependency)],
-    user_otp: Annotated[UserLoginOtp, Body()],
+    db: Annotated[Session, Depends(db_init)],
     response: Response,
+    request: Request,
 ):
-    user = UserCrud.get_user_by_otp(db, user_otp.otp)
+    my_otp = request.headers.get("Mobile_Otp")
+    user = UserCrud.get_user_by_otp(db, my_otp)
 
     if user is None:
         raise HTTPException(
