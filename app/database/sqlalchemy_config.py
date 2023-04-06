@@ -5,7 +5,7 @@ from app.database.config import user, password, db
 
 db_url = f"postgresql://{user}:{password}@localhost:5432/{db}"
 
-engine = create_engine(url)
+engine = create_engine(db_url)
 
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 

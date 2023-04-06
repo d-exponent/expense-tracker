@@ -33,6 +33,7 @@ def upgrade():
         sa.Column("image_url", sa.String),
         sa.Column("is_active", sa.Boolean, server_default=text("True")),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=func.now()),
+        sa.Column("role", sa.Enum(sa.Enum("user", "admin", name="users_role_enum"))),
         sa.Column(
             "updated_at",
             sa.DateTime(timezone=True),

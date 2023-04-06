@@ -32,12 +32,19 @@ class SMSMessenger:
             to=self.__to,
         )
 
-    def send_signup_otp_sms(self, otp: str):
-        signup_msg = signup_sms.replace("<otp>", otp)
-        sms_message = add_header_greeting(name=self.__receiver_name, msg=signup_msg)
-        self.send_sms(message=sms_message)
+    def send_otp(self, otp: str, type: str = "auth"):
+        if type == "sign-up":
+            sms_message = add_header_greeting(
+                name=self.__receiver_name, msg=signup_sms.replace("<otp>", otp)
+            )
+        elif type == "login":
+            sms_message = add_header_greeting(
+                name=self.__receiver_name, msg=login_sms.replace("<otp>", otp)
+            )
+        else:
+            sms_message = add_header_greeting(
+                name=self.__receiver_name,
+                msg=f"Your one time verification code is {otp}. It expires in 2 minutes",
+            )
 
-    def send_login_otp_sms(self, otp: str):
-        login_msg = login_sms.replace("<otp>", otp)
-        sms_message = add_header_greeting(name=self.__receiver_name, msg=login_msg)
         self.send_sms(message=sms_message)

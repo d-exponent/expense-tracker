@@ -9,6 +9,10 @@ def raise_bad_request_http_error(message: str = "Bad request"):
     raise HTTPException(status_code=400, detail=message)
 
 
+def raise_404_exception(msg: str = "Not Found"):
+    raise HTTPException(status_code=404, detail=msg)
+
+
 def handle_empty_records(records, records_name: str):
     if len(records) == 0:
         raise HTTPException(

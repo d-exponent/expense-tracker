@@ -1,30 +1,70 @@
 from typing import Annotated
+from datetime import datetime
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from fastapi import APIRouter, Depends, Path, Response, HTTPException
-from random import randint
-from app.crud.users import UserCrud
-from app.utils.database import db_dependency
-from app.utils.sms import SMSMessenger
-from app.dependencies.auth import LOGOUT_COOKIE_EXPIRES_AFTER, ACEESS_TOKEN_COOKIE_KEY
 
 from app.routers import login
-
-
-def raise_404_exception(msg: str = "Not Found"):
-    raise HTTPException(status_code=404, detail=msg)
-
-
-def generate_otp(digits_num: int = 4):
-    otp_digits = [str(randint(0, 9)) for _ in range(0, digits_num)]
-    return "".join(otp_digits)
+from app.utils.app_utils import add_minutes
+from app.schema.user import UserCreate, UserSignUp, UserOut
+from app.crud.users import UserCrud
+from app.utils.error_messages import UserErrorMessages
+from app.utils.error_utils import raise_404_exception
+from app.utils.database import db_dependency
+from app.utils.sms import SMSMessenger
+from app.utils.auth_utils import (
+    ACEESS_TOKEN_COOKIE_KEY,
+    LOGOUT_COOKIE_EXPIRES,
+    handle_integrity_error,
+    generate_otp,
+    raise_server_error,
+    get_user_update_dict
+)
 
 
 router = APIRouter(prefix="/auth", tags=["auth", "authenticcation"])
 router.include_router(login.router)
 
 
-@router.get("/mobile_token/{phone_number}")
-def get_otp_sms(
+@router.post("/sign_up", status_code=201)
+def user_sign_up(
+    *, db: Session = Depends(db_dependency), user: UserCreate, response: Response
+):
+    db_user = UserCrud.get_user_by_phone(db, user.phone_number)
+    if db_user:
+        raise HTTPException(status_code=400, detail=UserErrorMessages.already_exists)
+
+    user_otp = generate_otp(6)
+    user_dict = user.dict().copy()
+    user_dict.update(
+        get_user_update_dict(user_otp, add_minutes(7))
+    )  # allow 2 mins for lag
+
+    try:
+        db_user = UserCrud.create(db=db, user=UserSignUp(**user_dict))
+    except IntegrityError as e:
+        handle_integrity_error(error_message=str(e))
+    except Exception:
+        raise_server_error(message="Error creating the User")
+
+    user_full_name = f"{db_user.first_name} {db_user.last_name}"
+    sms_messenger = SMSMessenger(user_full_name, db_user.phone_number)
+
+    try:
+        sms_messenger.send_otp(user_otp, type="sign-up")
+    except Exception:
+        raise_server_error(
+            message="Something went wrong while sending the user's otp sms. Please login with the phone number to recieve a new otp sms"
+        )
+
+    return {
+        "message": f"An otp was sent to {db_user.phone_number}. Login with the otp to complete your registration",
+        "data": UserOut.from_orm(db_user),
+    }
+
+
+@router.get("/mobile_otp/{phone_number}")
+def get_otp(
     db: Annotated[Session, Depends(db_dependency)],
     phone_number: Annotated[str, Path()],
 ):
@@ -34,18 +74,21 @@ def get_otp_sms(
         raise_404_exception("This user does not exist")
 
     user_otp = generate_otp(5)
+    data = get_user_update_dict(otp=user_otp, otp_expires=add_minutes(4))
+    # Allowing extra 2 minutes for
 
-    # Update the user
-    UserCrud.update_user_otp(db=db, phone=phone_number, otp=user_otp)
+    try:
+        UserCrud.update_user_by_phone(db, phone=phone_number, update_data=data)
+    except Exception:
+        raise_server_error()
 
     try:
         user_name = f"{user.first_name} {user.last_name}"
-        SMSMessenger(user_name, user.phone_number).send_login_otp_sms(user_otp)
-        return {"message": "Otp has been sent succcesfully! Expires in 5 minutes"}
+        SMSMessenger(user_name, user.phone_number).send_otp(user_otp)
+        return {"message": "Otp has been sent succcesfully! Expires in 2 minutes"}
     except Exception:
-        raise HTTPException(
-            status_code=500,
-            detail="Something went wrong in sending the otp. Please try again",
+        raise_server_error(
+            message="Something went wrong in sending the otp. Please try again"
         )
 
 
@@ -56,7 +99,7 @@ def logout(response: Response):
         value="logged out",
         httponly=True,
         secure=True,
-        max_age=LOGOUT_COOKIE_EXPIRES_AFTER,
+        max_age=LOGOUT_COOKIE_EXPIRES,
     )
 
     return {"message": "Logged out successfully"}

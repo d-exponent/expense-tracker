@@ -9,12 +9,14 @@ import sqlalchemy as sa
 class User(Base):
     __tablename__ = "users"
     __table_args__ = (
-        sa.UniqueConstraint("phone", "email", name="users_phone_email_key"),
+        sa.UniqueConstraint(
+            "phone_number", "email_address", name="users_phone_email_key"
+        ),
         sa.CheckConstraint(  # Password and email must exist or not exist together
             """
-                (password IS NUll AND email IS NULL) 
-                OR 
-                (password IS NOT NULL AND email IS NOT NULL)
+                (password IS NUll AND email_address IS NULL)
+                OR
+                (password IS NOT NULL AND email_address IS NOT NULL)
             """,
             name="users_password_email_ck",
         ),
@@ -31,6 +33,7 @@ class User(Base):
     mobile_otp_expires_at = sa.Column(
         sa.DateTime(timezone=True),
     )
+    role = sa.Column(sa.Enum("user", "admin", name="users_role_enum"))
     password = sa.Column(sa.LargeBinary)
     image_url = sa.Column(sa.String)
     is_active = sa.Column(sa.Boolean, server_default=text("True"))
