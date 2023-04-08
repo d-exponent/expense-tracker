@@ -5,10 +5,7 @@ from sqlalchemy.orm import Session
 from app.crud.bills import BillCrud
 from app.utils.database import db_init
 from app.schema.bill_payment import BillCreate, BillOut, PaymentOut
-from app.utils.error_utils import (
-    raise_server_error,
-    handle_empty_records,
-)
+from app.utils.error_utils import RaiseHttpException, handle_empty_records
 
 
 class BillWithPayments(BillOut):
@@ -25,7 +22,7 @@ def make_bill(
     try:
         return BillCrud.create(db=db, bill=bill_data)
     except Exception:
-        raise_server_error()
+        RaiseHttpException.server_error()
 
 
 @router.patch("/")
@@ -42,7 +39,7 @@ def get_bills(
     try:
         bills = BillCrud.get_records(db, skip, limit)
     except Exception:
-        raise_server_error()
+        RaiseHttpException.server_error()
     else:
         handle_empty_records(records=bills, records_name="bills")
         return bills
@@ -51,8 +48,6 @@ def get_bills(
 @router.get("/{bill_id}", response_model=BillWithPayments, status_code=200)
 def get_bill(bill_id: int = Path(), db: Session = Depends(db_init)):
     try:
-        bill = BillCrud.get_by_id(db=db, id=bill_id)
+        return BillCrud.get_by_id(db=db, id=bill_id)
     except Exception:
-        raise_server_error()
-    else:
-        return bill
+        RaiseHttpException.server_error()

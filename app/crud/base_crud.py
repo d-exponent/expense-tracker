@@ -1,20 +1,18 @@
 from sqlalchemy.orm import Session
 
-from app.utils.error_utils import raise_bad_request_http_error
+from app.utils.error_utils import RaiseHttpException
 from app.utils.app_utils import remove_none_props_from_dict_recursive
 
 
 class Crud:
     orm_model = None
-    create_schema = None
 
     @classmethod
-    def __process(cls, item):
-        pass
-
-    @classmethod
-    def create(cls, db: Session, item):
-        pass
+    def commit_data_to_db(cls, db: Session, data):
+        db.add(data)
+        db.commit()
+        db.refresh(data)
+        return data
 
     @classmethod
     def get_by_id(cls, db: Session, id: int):
@@ -29,8 +27,8 @@ class Crud:
         query = cls._get_by_id_query(db, id)
 
         if query.first() is None:
-            raise_bad_request_http_error(
-                message=f"There is no {model_name_repr} with an id = {id}"
+            RaiseHttpException.bad_request(
+                f"There is no {model_name_repr} with an id = {id}"
             )
 
         query.update(
@@ -39,7 +37,6 @@ class Crud:
         )
 
         db.commit()
-
         return query.first()
 
     @classmethod
@@ -47,7 +44,7 @@ class Crud:
         query = cls._get_by_id_query(db, id)
 
         if query.first() is None:
-            raise_bad_request_http_error(message="This record doesn't exist.")
+            RaiseHttpException.bad_request(msg="This record doesn't exist.")
 
         query.delete()
         db.commit()

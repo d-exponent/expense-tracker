@@ -1,17 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException, Path, Query, Body
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
 from typing import Annotated
+from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, Body
 
-from app.utils.error_messages import UserErrorMessages
+from app.crud.users import UserCrud
 from app.schema.bill_payment import BillOut
 from app.utils.database import db_init
+from app.utils.error_messages import UserErrorMessages
 from app.schema.user import UserCreate, UserOut, UserUpdate
-from app.crud.users import UserCrud
-from app.utils.error_utils import (
-    raise_server_error,
-    handle_empty_records,
-)
+from app.utils.error_utils import handle_empty_records, RaiseHttpException
 
 
 class UserOutWithBills(UserOut):
@@ -25,29 +22,24 @@ def handle_integrity_error(error_message):
     if "users_phone_email_key" in error_message:
         raise HTTPException(status_code=400, detail=UserErrorMessages.already_exists)
 
-    raise_server_error()
+    RaiseHttpException.server_error()
 
 
 router = APIRouter(prefix="/users", tags=["users"])
 
 
-# CREATE AND PERSIT A NEW USER TO DB IF NOT EXISTS
 @router.post("/", response_model=UserOut, status_code=201)
-def create_users(user: UserCreate, db: Session = Depends(db_init)):
-    db_user = UserCrud.get_user_by_phone(db, user.phone_number)
-    if db_user:
-        raise HTTPException(status_code=400, detail=UserErrorMessages.already_exists)
+def create_user(user: UserCreate, db: Session = Depends(db_init)):
+    UserCrud.handle_user_if_exists(db, phone=user.phone_number)
 
     try:
         return UserCrud.create(db, user)
     except IntegrityError as error:
         handle_integrity_error(str(error))
     except Exception:
-        raise_server_error()
+        RaiseHttpException.server_error()
 
 
-# THIS PATCH OPERATION DOESNOT UPDATE THE NAME AND EMAIL FEILDS
-# UPDATE USERS NAMES
 @router.patch("/{user_id}", response_model=UserOut, status_code=200)
 def update_user(
     db: Session = Depends(db_init),
@@ -61,7 +53,6 @@ def update_user(
     )
 
 
-# GET AN ARRAY OF USERS
 @router.get("/", response_model=list[UserOut], status_code=200)
 def get_all_users(
     db: Session = Depends(db_init),
@@ -71,7 +62,7 @@ def get_all_users(
     try:
         users = UserCrud.get_records(db=db, skip=skip, limit=limit)
     except Exception:
-        raise_server_error()
+        RaiseHttpException.server_error()
     else:
         handle_empty_records(records=users, records_name="users")
         return users
@@ -92,9 +83,8 @@ def get_user(
         user = UserCrud.get_by_id(db=db, id=user_id)
     else:
         if phone is None and email is None:
-            raise HTTPException(
-                status_code=400,
-                detail="Provide the user's phone number or email address",
+            RaiseHttpException.bad_request(
+                msg="Provide the user's phone number or email address"
             )
 
         if phone:
@@ -103,7 +93,7 @@ def get_user(
             user = UserCrud.get_user_by_email(db=db, email=email)
 
     if user is None:
-        raise HTTPException(status_code=404, detail="User not found")
+        RaiseHttpException.not_found(msg="User not found")
 
     return user
 

@@ -6,7 +6,7 @@ from fastapi.security import OAuth2PasswordBearer
 from fastapi import HTTPException, Response
 from random import randint
 
-from app.utils.error_utils import raise_server_error
+from app.utils.error_utils import RaiseHttpException
 from app.schema.user import UserAuthSuccess, UserOut
 
 oauth_scheme = OAuth2PasswordBearer(tokenUrl="")
@@ -30,28 +30,17 @@ AUTH_COOKIE_EXPIRES = get_timestamp_secs(TOKEN_EXPIRES)
 LOGOUT_COOKIE_EXPIRES = get_timestamp_secs(CURRENT_UTC_TIME + timedelta(seconds=1))
 
 
-def raise_credentials_exception(
-    status_code: int = 401,
-    detail: str = "Could not validate credentials",
-):
-    raise HTTPException(
-        status_code=status_code,
-        detail=detail,
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-
-
 def handle_integrity_error(error_message):
     if "users_password_email_ck" in error_message:
-        raise HTTPException(status_code=400, detail="Provide the email and password")
+        RaiseHttpException.bad_request(msg="Provide the email and password")
 
     if "users_phone_email_key" in error_message:
-        raise HTTPException(status_code=400, detail="The user already exists")
+        RaiseHttpException.bad_request(msg="he user already exists")
 
-    raise_server_error()
+    RaiseHttpException.server_error()
 
 
-def get_user_update_dict(otp: str, otp_expires: datetime):
+def otp_updated_user_info(otp: str, otp_expires: datetime):
     return {
         "mobile_otp": otp,
         "mobile_otp_expires_at": otp_expires,
@@ -85,9 +74,9 @@ def decode_access_token(access_token: str) -> dict:
 
     except JWTError as e:
         if "Signature has expired" in str(e):
-            raise_credentials_exception(detail=EXPIRED_JWT_MESSAGE)
+            RaiseHttpException.unauthorized_with_headers(msg=EXPIRED_JWT_MESSAGE)
 
-        raise_credentials_exception()
+        RaiseHttpException.unauthorized_with_headers()
 
 
 def authenticate_password(plain_password: str, hashed_password: bytes):

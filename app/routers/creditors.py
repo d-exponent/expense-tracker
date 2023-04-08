@@ -1,15 +1,12 @@
-from fastapi import APIRouter, HTTPException, Body, Depends, Path, Query
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
 from typing import Annotated
+from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
+from fastapi import APIRouter, HTTPException, Body, Depends, Path, Query
 
 from app.schema.creditor import CreditorCreate, CreditorOut, CreditorUpdate
 from app.crud.creditors import CreditorCrud
 from app.utils.database import db_init
-from app.utils.error_utils import (
-    handle_empty_records,
-    raise_server_error,
-)
+from app.utils.error_utils import handle_empty_records, RaiseHttpException
 
 
 router = APIRouter(prefix="/creditors", tags=["creditors"])
@@ -37,7 +34,7 @@ def handle_integrity_error(error_message):
             detail="An account number can only be linked with a phone number",
         )
 
-    raise_server_error()
+    RaiseHttpException.server_error()
 
 
 # UPDATE USERS NAMES
@@ -57,19 +54,16 @@ def create_creditor(creditor: CreditorCreate = Body(), db: Session = Depends(db_
     db_creditor = CreditorCrud.get_creditor_by_phone(db, creditor.phone)
 
     if db_creditor:
-        raise HTTPException(
-            status_code=400, detail="This phone is already registered to an account."
+        RaiseHttpException.bad_request(
+            msg="This phone is already registered with an account."
         )
 
     try:
-        users = CreditorCrud.create(db, creditor)
+        return CreditorCrud.create(db, creditor)
     except IntegrityError as error:
         handle_integrity_error(str(error))
-
     except Exception:
-        raise_server_error()
-    else:
-        return users
+        RaiseHttpException.server_error()
 
 
 @router.get("/", status_code=200, response_model=list[CreditorOut])
@@ -77,7 +71,7 @@ def get_creditors(db: Session = Depends(db_init), skip: int = 0, limit: int = 10
     try:
         creditors = CreditorCrud.get_records(db, skip=skip, limit=limit)
     except Exception:
-        raise_server_error()
+        RaiseHttpException.server_error()
     else:
         handle_empty_records(records=creditors, records_name="creditors")
         return creditors
@@ -95,9 +89,8 @@ def get_creditor(
         creditor = CreditorCrud.get_by_id(db, id=creditor_id)
     else:
         if not any([phone, name, email]):
-            raise HTTPException(
-                status_code=400,
-                detail="Please provide the phone number, name or email address",
+            RaiseHttpException.bad_request(
+                msg="Provide the phone number, name or email address"
             )
 
         if phone:
@@ -108,14 +101,9 @@ def get_creditor(
             creditor = CreditorCrud.get_creditor_by_email(db, email)
 
     if creditor is None:
-        raise HTTPException(status_code=404, detail="Could not find this creditor")
+        RaiseHttpException.not_found(mes="The creditor does not exist")
 
     return creditor
-
-
-"""
-TODO: Document that the patch operation doesn't update the name and email fields
-"""
 
 
 @router.patch("/{creditor_id}", response_model=CreditorOut)
@@ -129,7 +117,7 @@ def update_creditor(
             db=db, id=creditor_id, data=creditor_data, model_name_repr="creditor"
         )
     except Exception:
-        raise_server_error()
+        RaiseHttpException.server_error()
 
 
 @router.delete("/{creditor_id}", status_code=204)

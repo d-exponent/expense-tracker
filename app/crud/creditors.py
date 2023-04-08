@@ -3,26 +3,14 @@ from sqlalchemy.orm import Session
 from app.crud.base_crud import Crud
 from app.models import Creditor as CreditorOrm
 from app.schema.creditor import CreditorCreate
-
-
-def to_title_case(str) -> str:
-    words = str.split(" ")
-
-    if len(words) == 1:
-        return words[0].title()
-
-    titled_words = [word.title() for word in words]
-    return " ".join(titled_words)
+from app.utils.app_utils import to_title_case
 
 
 class CreditorCrud(Crud):
     orm_model = CreditorOrm
-    create_schema = CreditorCreate
 
     @classmethod
     def __process(cls, creditor: CreditorCreate):
-        cls.assert_item_schema(creditor)
-
         creditor.name = to_title_case(creditor.name)
         creditor.city = to_title_case(creditor.city)
         creditor.state = to_title_case(creditor.state)

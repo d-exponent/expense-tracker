@@ -16,6 +16,20 @@ def remove_none_props_from_dict_recursive(data: dict) -> dict:
     return filtered
 
 
+def strip_and_title(str: str):
+    return str.strip().title()
+
+
+def to_title_case(str) -> str:
+    words = str.split(" ")
+
+    if len(words) == 1:
+        return strip_and_title(words[0])
+
+    titled_words = [strip_and_title(word) for word in words]
+    return " ".join(titled_words)
+
+
 def add_minutes(mins: int):
     return datetime.utcnow() + timedelta(minutes=mins)
 
