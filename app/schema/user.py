@@ -38,7 +38,7 @@ class UserCreate(UserBase):
 
 
 class UserLoginEmailPassword(BaseModel):
-    email_address: EmailStr | None
+    email_address: EmailStr
     password: str
 
 

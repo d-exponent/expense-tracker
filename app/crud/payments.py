@@ -8,7 +8,6 @@ from app.crud.bills import BillCrud
 
 class PaymentCrud(BillCrud, Crud):
     orm_model = PaymentOrm
-    create_schema = PaymentCreate
 
     @classmethod
     def __process(cls, payment: PaymentCreate):
@@ -23,7 +22,6 @@ class PaymentCrud(BillCrud, Crud):
     @classmethod
     def create(cls, db: Session, payment: PaymentCreate) -> PaymentOut:
         # Start a new transaction
-
         processed_payment = cls.__process(payment=payment)
 
         # Updates the bill record with the payment information

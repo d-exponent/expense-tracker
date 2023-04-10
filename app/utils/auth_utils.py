@@ -1,15 +1,15 @@
+from re import match
 from bcrypt import checkpw
+from random import randint
 from decouple import config
+from fastapi import Response
 from jose import jwt, JWTError
 from datetime import timedelta, datetime
-from fastapi.security import OAuth2PasswordBearer
-from fastapi import HTTPException, Response
-from random import randint
 
 from app.utils.error_utils import RaiseHttpException
 from app.schema.user import UserAuthSuccess, UserOut
 
-oauth_scheme = OAuth2PasswordBearer(tokenUrl="")
+raise_unauthorized = RaiseHttpException.unauthorized_with_headers
 
 
 def get_timestamp_secs(date: datetime) -> int:
@@ -49,8 +49,7 @@ def otp_updated_user_info(otp: str, otp_expires: datetime):
 
 def generate_otp(digits_num: int = 4):
     otp_digits = [str(randint(0, 9)) for _ in range(0, digits_num)]
-    otp = "".join(otp_digits)
-    return otp
+    return "".join(otp_digits)
 
 
 def create_access_token(data: dict) -> str:
@@ -63,23 +62,48 @@ def create_access_token(data: dict) -> str:
     return access_token
 
 
+def validate_token_anatomy(token: str) -> bool:
+    jwt_token_regex = "^[A-Za-z0-9_-]{2,}(?:\\.[A-Za-z0-9_-]{2,}){2}$"
+    if not match(jwt_token_regex, token):
+        raise_unauthorized("Provide a valid token")
+
+    return True
+
+
+def handle_create_token_for_user(user_data: UserOut) -> str:
+    if not all([user_data.id, user_data.phone_number]):
+        raise_unauthorized(msg="invalid user credentails")
+
+    to_encode = {
+        "id": user_data.id,
+        "phone_number": user_data.phone_number,
+    }
+
+    return create_access_token(to_encode)
+
+
 def decode_access_token(access_token: str) -> dict:
     """
     Return a decoded access token\n
     Throws exception if access token is not valid or Expired
     """
 
+    if not validate_token_anatomy(access_token):
+        raise_unauthorized("Invalid access token")
+
     try:
-        return jwt.decode(access_token, JWT_SECRET, algorithms=JWT_ALGORITYHM)
+        payload = jwt.decode(access_token, JWT_SECRET, algorithms=JWT_ALGORITYHM)
 
     except JWTError as e:
         if "Signature has expired" in str(e):
-            RaiseHttpException.unauthorized_with_headers(msg=EXPIRED_JWT_MESSAGE)
+            raise_unauthorized(msg=EXPIRED_JWT_MESSAGE)
 
-        RaiseHttpException.unauthorized_with_headers()
+        raise_unauthorized()
+    else:
+        return payload
 
 
-def authenticate_password(plain_password: str, hashed_password: bytes):
+def authenticate_password(plain_password: str, hashed_password: bytes) -> bool:
     """
     Returns True if the user is authenticated
     Else returns False
@@ -94,9 +118,7 @@ def authenticate_password(plain_password: str, hashed_password: bytes):
     return True
 
 
-def get_auth_success_response(
-    token: str, user_orm_data, message: str = "Success"
-) -> UserAuthSuccess:
+def get_auth_success_response(token: str, user_orm_data, message: str = "Success"):
     return UserAuthSuccess(
         access_token=token,
         token_type="Bearer",

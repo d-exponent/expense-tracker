@@ -1,24 +1,26 @@
 from typing import Annotated
-from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from fastapi import APIRouter, Depends, Path, Response
 
 from app.routers import login
 from app.crud.users import UserCrud
 from app.utils import auth_utils as au
-from app.utils.error_utils import RaiseHttpException
-from app.utils.app_utils import add_minutes
 from app.utils.sms import SMSMessenger
-from app.utils.database import db_init
+from app.models import User as UserOrm
+from app.utils.database import dbSession
+from app.utils.app_utils import add_minutes
+from app.utils.error_utils import RaiseHttpException
 from app.schema.user import UserCreate, UserSignUp, UserOut
 
 
 router = APIRouter(prefix="/auth", tags=["auth", "authenticcation"])
 router.include_router(login.router)
 
+raise_server_error = RaiseHttpException.server_error
 
-@router.post("/sign_up", status_code=201)
-def user_sign_up(*, db: Session = Depends(db_init), user: UserCreate):
+
+@router.post("/signup", status_code=201)
+def user_sign_up(db: dbSession, user: UserCreate):
     UserCrud.handle_user_if_exists(db, phone=user.phone_number)
 
     user_otp = au.generate_otp(6)
@@ -29,11 +31,11 @@ def user_sign_up(*, db: Session = Depends(db_init), user: UserCreate):
     user_data.update(update_data)
 
     try:
-        db_user = UserCrud.create(db=db, user=UserSignUp(**user_data))
+        db_user: UserOrm = UserCrud.create(db=db, user=UserSignUp(**user_data))
     except IntegrityError as e:
         au.handle_integrity_error(error_message=str(e))
     except Exception:
-        RaiseHttpException.server_error(msg="Error creating the User")
+        raise_server_error(msg="Error creating the User")
 
     full_name = f"{db_user.first_name} {db_user.last_name}"
     phone_number = db_user.phone_number
@@ -41,7 +43,7 @@ def user_sign_up(*, db: Session = Depends(db_init), user: UserCreate):
     try:
         SMSMessenger(full_name, phone_number).send_otp(user_otp, type="sign-up")
     except Exception:
-        RaiseHttpException.server_error(
+        raise_server_error(
             msg="Something went wrong with sending the otp via sms. Login with the phone number to recieve a new otp"
         )
 
@@ -53,10 +55,10 @@ def user_sign_up(*, db: Session = Depends(db_init), user: UserCreate):
 
 @router.get("/mobile/{phone_number}")
 def get_otp(
-    db: Annotated[Session, Depends(db_init)],
+    db: dbSession,
     phone_number: Annotated[str, Path()],
 ):
-    user = UserCrud.get_user_by_phone(db, phone=phone_number)
+    user: UserOrm = UserCrud.get_user_by_phone(db, phone=phone_number)
     if user is None:
         RaiseHttpException.not_found(msg="The user does not exist")
 
@@ -66,13 +68,13 @@ def get_otp(
     try:
         UserCrud.update_user_by_phone(db, phone=phone_number, update_data=data)
     except Exception:
-        RaiseHttpException.server_error()
+        raise_server_error()
 
     try:
         user_name = f"{user.first_name} {user.last_name}"
         SMSMessenger(user_name, user.phone_number).send_otp(user_otp)
     except Exception:
-        RaiseHttpException.server_error(
+        raise_server_error(
             msg="Something went wrong in sending the otp. Please try again"
         )
     else:

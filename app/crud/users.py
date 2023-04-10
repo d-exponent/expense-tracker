@@ -48,6 +48,7 @@ class UserCrud(Crud):
 
     @classmethod
     def get_user_by_email(cls, db: Session, email: str):
+        
         return (
             db.query(cls.orm_model)
             .filter(cls.orm_model.email_address == email.lower())
