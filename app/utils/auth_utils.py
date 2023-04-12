@@ -10,8 +10,6 @@ from app.utils.error_utils import RaiseHttpException
 from app.schema.user import UserAuthSuccess, UserOut
 
 raise_unauthorized = RaiseHttpException.unauthorized_with_headers
-
-
 def get_timestamp_secs(date: datetime) -> int:
     return int(date.timestamp())
 
@@ -21,7 +19,7 @@ JWT_SECRET = config("JWT_SECRET")
 JWT_ALGORITYHM = config("JWT_ALGORITHM")
 JWT_EXPIRES_AFTER = config("JWT_EXPIRES_AFTER")
 EXPIRED_JWT_MESSAGE = "Your session has expired. Please login"
-ACEESS_TOKEN_COOKIE_KEY = "exptc_jwt"
+ACEESS_TOKEN_COOKIE_KEY = config("COOKIE_KEY")
 
 # TOKEN-COOKIE DATE-TIME CONFIG
 CURRENT_UTC_TIME = datetime.utcnow()
@@ -41,18 +39,23 @@ def handle_integrity_error(error_message):
 
 
 def otp_updated_user_info(otp: str, otp_expires: datetime):
+    assert isinstance(otp, str), "Otp must be a string"
+
     return {
         "mobile_otp": otp,
         "mobile_otp_expires_at": otp_expires,
     }
 
 
-def generate_otp(digits_num: int = 4):
-    otp_digits = [str(randint(0, 9)) for _ in range(0, digits_num)]
+def generate_otp(num_of_digits: int = 4):
+    otp_digits = [str(randint(0, 9)) for _ in range(0, num_of_digits)]
     return "".join(otp_digits)
 
 
 def create_access_token(data: dict) -> str:
+
+    assert isinstance(data, dict), "data must be a dict"
+
     """Create a new access token"""
 
     to_encode = data.copy()
@@ -71,15 +74,10 @@ def validate_token_anatomy(token: str) -> bool:
 
 
 def handle_create_token_for_user(user_data: UserOut) -> str:
-    if not all([user_data.id, user_data.phone_number]):
+    if not user_data.id:
         raise_unauthorized(msg="invalid user credentails")
 
-    to_encode = {
-        "id": user_data.id,
-        "phone_number": user_data.phone_number,
-    }
-
-    return create_access_token(to_encode)
+    return create_access_token({"id": user_data.id})
 
 
 def decode_access_token(access_token: str) -> dict:

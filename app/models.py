@@ -1,9 +1,9 @@
-from app.database.sqlalchemy_config import Base
-
-from sqlalchemy.orm import relationship
-from sqlalchemy.schema import Computed
-from sqlalchemy.sql.expression import text, func
 import sqlalchemy as sa
+from sqlalchemy.schema import Computed
+from sqlalchemy.orm import relationship
+from sqlalchemy.sql.expression import text, func
+
+from app.database.sqlalchemy_config import Base
 
 
 class User(Base):
@@ -33,7 +33,7 @@ class User(Base):
     mobile_otp_expires_at = sa.Column(
         sa.DateTime(timezone=True),
     )
-    role = sa.Column(sa.Enum("user", "admin", name="users_role_enum"))
+    role = sa.Column(sa.Enum("user", "staff", "admin", name="users_role_enum"))
     password = sa.Column(sa.LargeBinary)
     image_url = sa.Column(sa.String)
     is_active = sa.Column(sa.Boolean, server_default=text("True"))

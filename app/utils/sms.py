@@ -33,7 +33,7 @@ class SMSMessenger:
         )
 
     def send_otp(self, otp: str, type: str = "auth"):
-        if type == "sign-up":
+        if type == "signup":
             sms_message = add_header_greeting(
                 name=self.__receiver_name, msg=signup_sms.replace("<otp>", otp)
             )

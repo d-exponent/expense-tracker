@@ -28,12 +28,14 @@ def handle_integrity_error(error_message):
 router = APIRouter(prefix="/users", tags=["users"])
 raise_server_error = RaiseHttpException.server_error
 
+adminProtct = Annotated[UserOut, Depends(auth.restrict_to("user", "admin"))]
+
 
 @router.post("/", response_model=UserOut, status_code=201)
 def create_user(
     user: UserCreate,
     db: dbSession,
-    protect: Annotated[UserOut, Depends(auth.restrict_to("admin"))],
+    protect: adminProtct,
     # Users should use the signup route ../auth/signup
 ):
     UserCrud.handle_user_if_exists(db, phone=user.phone_number)
@@ -78,14 +80,10 @@ def get_all_users(
         return users
 
 
-user_id_description = "If you don't have the users id, provide any integer less than one and the users phone number or email adress via a query"
-
-
-# GET A SINGLE USER BY ID
 @router.get("/{user_id}", response_model=UserOutWithBills, status_code=200)
 def get_user(
     db: dbSession,
-    user_id: int = Path(description=user_id_description),
+    user_id: int = Path(),
     phone: str = Query(default=None, description="Retrieve the user by phone number"),
     email: str = Query(default=None, description="Retrive the user by email address"),
 ):

@@ -1,6 +1,6 @@
 from typing import Annotated
 from sqlalchemy.exc import IntegrityError
-from fastapi import APIRouter, Depends, Path, Response
+from fastapi import APIRouter, Path, Response
 
 from app.routers import login
 from app.crud.users import UserCrud
@@ -8,7 +8,7 @@ from app.utils import auth_utils as au
 from app.utils.sms import SMSMessenger
 from app.models import User as UserOrm
 from app.utils.database import dbSession
-from app.utils.app_utils import add_minutes
+from app.utils.app_utils import AddTIme
 from app.utils.error_utils import RaiseHttpException
 from app.schema.user import UserCreate, UserSignUp, UserOut
 
@@ -26,8 +26,9 @@ def user_sign_up(db: dbSession, user: UserCreate):
     user_otp = au.generate_otp(6)
     user_data = user.dict().copy()
     update_data = au.otp_updated_user_info(
-        user_otp, add_minutes(12)
-    )  # allow two minutes for lag
+        otp=user_otp, otp_expires=AddTIme.add_minutes(mins=6)
+    )
+
     user_data.update(update_data)
 
     try:
@@ -41,10 +42,10 @@ def user_sign_up(db: dbSession, user: UserCreate):
     phone_number = db_user.phone_number
 
     try:
-        SMSMessenger(full_name, phone_number).send_otp(user_otp, type="sign-up")
+        SMSMessenger(full_name, phone_number).send_otp(user_otp, type="signup")
     except Exception:
         raise_server_error(
-            msg="Something went wrong with sending the otp via sms. Login with the phone number to recieve a new otp"
+            "Get mobile otp from the /auth/mobile/<number> route with {db_user.phone_number}"
         )
 
     return {
@@ -63,7 +64,7 @@ def get_otp(
         RaiseHttpException.not_found(msg="The user does not exist")
 
     user_otp = au.generate_otp(5)
-    data = au.otp_updated_user_info(otp=user_otp, otp_expires=add_minutes(4))
+    data = au.otp_updated_user_info(otp=user_otp, otp_expires=AddTIme.add_minutes(3))
 
     try:
         UserCrud.update_user_by_phone(db, phone=phone_number, update_data=data)
