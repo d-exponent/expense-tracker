@@ -104,10 +104,10 @@ class Bill(Base):
     )
     creditor_id = sa.Column(
         sa.Integer,
-        sa.ForeignKey("creditors.id", ondelete="CASCADE"),
+        sa.ForeignKey("creditors.id", ondelete="SET NULL"),
         nullable=False,
     )
-    description = sa.Column(sa.String, nullable=False)
+    description = sa.Column(sa.Text, nullable=False)
     starting_amount = sa.Column(sa.Numeric(10, 2), nullable=False)
     paid_amount = sa.Column(sa.Numeric(10, 2), server_default=text("0.00"))
     current_balance = sa.Column(
@@ -133,7 +133,6 @@ class Payment(Base):
         sa.ForeignKey("bills.id", ondelete="CASCADE"),
         nullable=False,
     )
-    first_payment = sa.Column(sa.Boolean, server_default=text("False"))
     amount = sa.Column(sa.Numeric(10, 2), nullable=False)
     created_at = sa.Column(sa.DateTime(timezone=True), server_default=func.now())
 
