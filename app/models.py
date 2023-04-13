@@ -50,9 +50,6 @@ class User(Base):
 
     user_bills = relationship("Bill", back_populates="user_owner")
 
-    def __repr__(self) -> str:
-        return f"ID: {self.id}, Password: {self.password}"
-
     def compare_password(self, password) -> bool:
         return authenticate_password(
             plain_password=password, hashed_password=self.password
