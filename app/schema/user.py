@@ -18,6 +18,10 @@ password_reg = (
 )
 
 
+class UserPassword(BaseModel):
+    password: constr(regex=password_reg)
+
+
 class UserBase(BaseModel):
     first_name: constr(max_length=40, strip_whitespace=True)
     middle_name: constr(max_length=40, strip_whitespace=True) = None
@@ -57,13 +61,17 @@ class UserUpdate(BaseModel):
             raise_bad_request("There are no properties to be updated.")
 
 
-class UserCreate(UserBase):
-    password: constr(regex=password_reg)
+class UserCreate(UserBase, UserPassword):
+    pass
 
 
-class UserLoginEmailPassword(BaseModel):
+class UserLoginEmailPassword(UserPassword):
     email_address: EmailStr
-    password: str
+
+
+class UserUpdatePassword(UserPassword):
+    new_password: constr(regex=password_reg)
+    new_password_confirm: constr(regex=password_reg)
 
 
 class UserLoginPhoneNumber(BaseModel):

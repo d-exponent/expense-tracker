@@ -7,8 +7,8 @@ class InvalidCredentials:
         "Invalid Credentials. Provide the email address and password for the user."
     )
     invalid_password = "Incorrect password"
-    invalid_otp = "Invalid OTP. Provide the OTP for the user."
-    expired_otp = "Expired OTP. Provide the OTP for the user."
+    invalid_otp = "Invalid OTP"
+    expired_otp = "Expired OTP"
 
 
 class UserErrorMessages(UserNotExist):

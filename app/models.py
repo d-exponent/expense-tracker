@@ -4,6 +4,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql.expression import text, func
 
 from app.database.sqlalchemy_config import Base
+from app.utils.auth_utils import authenticate_password
 
 
 class User(Base):
@@ -48,6 +49,14 @@ class User(Base):
     password_reset_token_expires_at = sa.Column(sa.DateTime(timezone=True))
 
     user_bills = relationship("Bill", back_populates="user_owner")
+
+    def __repr__(self) -> str:
+        return f"ID: {self.id}, Password: {self.password}"
+
+    def compare_password(self, password) -> bool:
+        return authenticate_password(
+            plain_password=password, hashed_password=self.password
+        )
 
 
 class Creditor(Base):

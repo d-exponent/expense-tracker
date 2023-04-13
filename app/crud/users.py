@@ -66,3 +66,9 @@ class UserCrud(Crud):
     def handle_user_if_exists(cls, db: Session, phone: str):
         if cls.get_user_by_phone(db, phone) is not None:
             RaiseHttpException.bad_request(msg="The user already exists")
+
+    @classmethod
+    def update_user_password(cls, db: Session, user_id: int, new_password: str):
+        hashed_password = cls.__hash_password(password=new_password)
+        cls.get_by_id_query(db=db, id=user_id).update({"password": hashed_password})
+        db.commit()

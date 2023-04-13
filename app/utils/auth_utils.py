@@ -126,13 +126,12 @@ def decode_access_token(access_token: str) -> dict:
 
 def authenticate_password(plain_password: str, hashed_password: bytes) -> bool:
     """
-    Returns True if the user is authenticated\n
+    Returns True if the password matches the hashed password\n
     Else returns False
     """
 
     password_bytes = plain_password.encode(config("ENCODE_FMT"))
-    is_valid_password = checkpw(password_bytes, hashed_password)
-    return is_valid_password
+    return checkpw(password_bytes, hashed_password)
 
 
 def get_auth_success_response(token: str, user_orm_data, message: str = "Success"):
