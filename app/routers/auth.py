@@ -8,8 +8,9 @@ from app.utils import auth_utils as au
 from app.utils.sms import SMSMessenger
 from app.models import User as UserOrm
 from app.utils.database import dbSession
-from app.utils.app_utils import AddTIme
+from app.utils.app_utils import AddTime
 from app.utils.error_utils import RaiseHttpException
+from app.utils.error_messages import SignupErrorMessages, GetMobileOtpErrorMessages
 from app.schema.user import UserCreate, UserSignUp, UserOut
 
 
@@ -25,18 +26,16 @@ def user_sign_up(db: dbSession, user: UserCreate):
 
     user_otp = au.generate_otp(6)
     user_data = user.dict().copy()
-    update_data = au.otp_updated_user_info(
-        otp=user_otp, otp_expires=AddTIme.add_minutes(mins=6)
+    user_data.update(
+        au.otp_updated_user_info(otp=user_otp, otp_expires=AddTime.add_minutes(mins=5))
     )
-
-    user_data.update(update_data)
 
     try:
         db_user: UserOrm = UserCrud.create(db=db, user=UserSignUp(**user_data))
     except IntegrityError as e:
         au.handle_integrity_error(error_message=str(e))
     except Exception:
-        raise_server_error(msg="Error creating the User")
+        raise_server_error(SignupErrorMessages.server_error)
 
     full_name = f"{db_user.first_name} {db_user.last_name}"
     phone_number = db_user.phone_number
@@ -44,9 +43,7 @@ def user_sign_up(db: dbSession, user: UserCreate):
     try:
         SMSMessenger(full_name, phone_number).send_otp(user_otp, type="signup")
     except Exception:
-        raise_server_error(
-            "Get mobile otp from the /auth/mobile/<number> route with {db_user.phone_number}"
-        )
+        raise_server_error(SignupErrorMessages.server_error)
 
     return {
         "message": f"An otp was sent to {db_user.phone_number}. Login with the otp to complete your registration",
@@ -61,23 +58,21 @@ def get_otp(
 ):
     user: UserOrm = UserCrud.get_user_by_phone(db, phone=phone_number)
     if user is None:
-        RaiseHttpException.not_found(msg="The user does not exist")
+        RaiseHttpException.not_found(GetMobileOtpErrorMessages.not_found)
 
     user_otp = au.generate_otp(5)
-    data = au.otp_updated_user_info(otp=user_otp, otp_expires=AddTIme.add_minutes(3))
+    data = au.otp_updated_user_info(otp=user_otp, otp_expires=AddTime.add_minutes(3))
 
     try:
         UserCrud.update_user_by_phone(db, phone=phone_number, update_data=data)
     except Exception:
-        raise_server_error()
+        raise_server_error(GetMobileOtpErrorMessages.update_user_error)
 
     try:
         user_name = f"{user.first_name} {user.last_name}"
         SMSMessenger(user_name, user.phone_number).send_otp(user_otp)
     except Exception:
-        raise_server_error(
-            msg="Something went wrong in sending the otp. Please try again"
-        )
+        raise_server_error(GetMobileOtpErrorMessages.otp_send_error)
     else:
         return {"message": "Otp has been sent succcesfully! Expires in 2 minutes"}
 

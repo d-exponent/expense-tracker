@@ -1,5 +1,7 @@
 from pydantic import BaseModel, EmailStr, constr
 from datetime import datetime
+from app.utils.app_utils import remove_none_props_from_dict_recursive as rnd
+from app.utils.error_utils import RaiseHttpException
 
 
 """
@@ -10,10 +12,10 @@ USER PASSWORD REGEX REQUIREMENTS
 4. Must be at least eight(8) characters long
 
 """
+e_164_fmt_regex = "^\\+[1-9]\\d{1,14}$"
 password_reg = (
     "^(?=(.*[A-Z]){1,})(?=(.*[0-9]){1,})(?=(.*[!@#$%^&*()\\-__+.]){1,}).{8,}$"
 )
-e_164_fmt_regex = "^\\+[1-9]\\d{1,14}$"
 
 
 class UserBase(BaseModel):
@@ -31,6 +33,28 @@ class UserUpdate(BaseModel):
     middle_name: constr(max_length=40, strip_whitespace=True) = None
     last_name: constr(max_length=40, strip_whitespace=True) = None
     image_url: constr(strip_whitespace=True) = None
+    email_address: EmailStr | None
+    phone_number: str | None
+
+    def validate_data(self):
+        """
+        Ensure that there is at least one valid property to be updated\n
+        Ensures Email addres and phone number won't be updated
+        """
+
+        raise_bad_request = RaiseHttpException.bad_request
+
+        if self.email_address:
+            raise_bad_request("Email address cannot be updated via this route")
+
+        if self.phone_number:
+            raise_bad_request("Phone number cannot be updated via this route")
+
+        # CHECK THAT THERE IS AT LEAST ONE VALUE TO BE UPDATED
+        filtered = rnd(self.__dict__)
+
+        if len(filtered.items()) == 0:
+            raise_bad_request("There are no properties to be updated.")
 
 
 class UserCreate(UserBase):

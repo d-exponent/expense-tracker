@@ -1,4 +1,4 @@
-from re import match
+import re
 from bcrypt import checkpw
 from random import randint
 from decouple import config
@@ -7,10 +7,17 @@ from jose import jwt, JWTError
 from datetime import timedelta, datetime
 
 from app.utils.error_utils import RaiseHttpException
+from app.utils.error_messages import SignupErrorMessages
 from app.schema.user import UserAuthSuccess, UserOut
 
 raise_unauthorized = RaiseHttpException.unauthorized_with_headers
+raise_bad_request = RaiseHttpException.bad_request
+
+
 def get_timestamp_secs(date: datetime) -> int:
+    """
+    Returns the timestamp of a given date as an integer
+    """
     return int(date.timestamp())
 
 
@@ -29,16 +36,24 @@ LOGOUT_COOKIE_EXPIRES = get_timestamp_secs(CURRENT_UTC_TIME + timedelta(seconds=
 
 
 def handle_integrity_error(error_message):
+    """Raises HttpException by processing the error message"""
+
+    if "already exists" in error_message:
+        raise_bad_request(SignupErrorMessages.already_exists)
+
     if "users_password_email_ck" in error_message:
-        RaiseHttpException.bad_request(msg="Provide the email and password")
+        raise_bad_request(SignupErrorMessages.provide_credentials)
 
     if "users_phone_email_key" in error_message:
-        RaiseHttpException.bad_request(msg="he user already exists")
+        raise_bad_request(SignupErrorMessages.already_exists)
 
-    RaiseHttpException.server_error()
+    RaiseHttpException.server_error(SignupErrorMessages.server_error)
 
 
 def otp_updated_user_info(otp: str, otp_expires: datetime):
+    """
+    Returns a dictionary for updating the db user mobile otp colums
+    """
     assert isinstance(otp, str), "Otp must be a string"
 
     return {
@@ -48,75 +63,82 @@ def otp_updated_user_info(otp: str, otp_expires: datetime):
 
 
 def generate_otp(num_of_digits: int = 4):
+    """
+    Returns a random sequence of positive integers\n
+    The length of the sequence defaults to 4
+    """
     otp_digits = [str(randint(0, 9)) for _ in range(0, num_of_digits)]
     return "".join(otp_digits)
 
 
 def create_access_token(data: dict) -> str:
+    """Create a new access token"""
 
     assert isinstance(data, dict), "data must be a dict"
 
-    """Create a new access token"""
-
     to_encode = data.copy()
     to_encode.update({"exp": TOKEN_EXPIRES, "iat": CURRENT_UTC_TIME})
-    access_token = jwt.encode(to_encode, JWT_SECRET, algorithm=JWT_ALGORITYHM)
-
-    return access_token
+    return jwt.encode(to_encode, JWT_SECRET, algorithm=JWT_ALGORITYHM)
 
 
 def validate_token_anatomy(token: str) -> bool:
+    """
+    Returns True if the token matches the jwt token anatomy\n
+    Else returns False
+    """
     jwt_token_regex = "^[A-Za-z0-9_-]{2,}(?:\\.[A-Za-z0-9_-]{2,}){2}$"
-    if not match(jwt_token_regex, token):
-        raise_unauthorized("Provide a valid token")
-
-    return True
+    match = re.match(jwt_token_regex, token)
+    return bool(match)
 
 
 def handle_create_token_for_user(user_data: UserOut) -> str:
+    """
+    Accepts a user object and handles creating a new token for that user
+    """
     if not user_data.id:
         raise_unauthorized(msg="invalid user credentails")
 
-    return create_access_token({"id": user_data.id})
+    access_token = create_access_token({"id": user_data.id})
+    return access_token
 
 
 def decode_access_token(access_token: str) -> dict:
     """
     Return a decoded access token\n
-    Throws exception if access token is not valid or Expired
+    Throws exception if access token is Expired or unverified
     """
 
     if not validate_token_anatomy(access_token):
-        raise_unauthorized("Invalid access token")
+        raise_unauthorized(msg="Invalid access token")
 
     try:
-        payload = jwt.decode(access_token, JWT_SECRET, algorithms=JWT_ALGORITYHM)
-
+        return jwt.decode(access_token, JWT_SECRET, algorithms=JWT_ALGORITYHM)
     except JWTError as e:
-        if "Signature has expired" in str(e):
+        error_msg = str(e)
+        if "Signature has expired" in error_msg:
             raise_unauthorized(msg=EXPIRED_JWT_MESSAGE)
 
+        if "Signature verification failed" in error_msg:
+            raise_unauthorized(msg="Invalid token signature")
+
         raise_unauthorized()
-    else:
-        return payload
 
 
 def authenticate_password(plain_password: str, hashed_password: bytes) -> bool:
     """
-    Returns True if the user is authenticated
+    Returns True if the user is authenticated\n
     Else returns False
     """
 
-    plain_password_bytes = plain_password.encode(config("ENCODE_FMT"))
-    is_valid_password = checkpw(plain_password_bytes, hashed_password)
-
-    if not is_valid_password:
-        return False
-
-    return True
+    password_bytes = plain_password.encode(config("ENCODE_FMT"))
+    is_valid_password = checkpw(password_bytes, hashed_password)
+    return is_valid_password
 
 
 def get_auth_success_response(token: str, user_orm_data, message: str = "Success"):
+    """
+    Creates and returns an auth response for the given user and the token
+    """
     return UserAuthSuccess(
         access_token=token,
         token_type="Bearer",
@@ -126,6 +148,9 @@ def get_auth_success_response(token: str, user_orm_data, message: str = "Success
 
 
 def set_cookie_header_response(response: Response, token: str):
+    """
+    Handles setting the reponse cookie with token information
+    """
     response.set_cookie(
         key=ACEESS_TOKEN_COOKIE_KEY,
         value=token,

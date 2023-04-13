@@ -67,7 +67,7 @@ def update_user(
 @router.get("/", response_model=list[UserOut], status_code=200)
 def get_all_users(
     db: dbSession,
-    protect: Annotated[UserOut, Depends(auth.restrict_to("admin"))],
+    # protect: Annotated[UserOut, Depends(auth.restrict_to("user"))],
     skip: int = Query(default=0),
     limit: int = Query(default=100),
 ):

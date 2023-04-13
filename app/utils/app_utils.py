@@ -2,12 +2,20 @@ from datetime import datetime, timedelta
 
 
 def remove_none_props_from_dict_recursive(data: dict) -> dict:
+    """
+    Remove all properties from a dictionary with None values.\n
+    Dictionary in embedded lists will also be processed recursively.
+    """
     assert isinstance(data, dict), "Data parameter must be a dict"
 
     data_copy = data.copy()
+    dict_items = data_copy.items()
     filtered = {}
 
-    for key, value in data_copy.items():
+    if len(dict_items) == 0:
+        return filtered
+
+    for key, value in dict_items:
         # Filter out feilds with None values
         if value is not None:
             if isinstance(value, dict):
@@ -31,10 +39,13 @@ def strip_and_title(str: str):
     return str.strip().title()
 
 
-def to_title_case(str) -> str:
-    assert isinstance(str, str), "to_title_case only accepts strings as argument"
+def to_title_case(string) -> str:
+    """
+    Returns a string where each word is a title case
+    """
+    assert isinstance(string, str), "to_title_case only accepts strings as argument"
 
-    words = str.split(" ")
+    words = string.split(" ")
 
     if len(words) == 1:
         return strip_and_title(words[0])
@@ -43,7 +54,11 @@ def to_title_case(str) -> str:
     return " ".join(titled_words)
 
 
-class AddTIme:
+class AddTime:
+    """
+    Add minutes, seconds, days and months to a datetime object
+    """
+
     utc_date_now = datetime.utcnow()
 
     @classmethod

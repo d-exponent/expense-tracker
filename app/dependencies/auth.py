@@ -42,7 +42,9 @@ def get_token(
             msg="Provide a valid access token via authorization header or cookie"
         )
 
-    au.validate_token_anatomy(token=access_token)
+    if not au.validate_token_anatomy(token=access_token):
+        au.raise_unauthorized("Invalid access token")
+
     return access_token
 
 

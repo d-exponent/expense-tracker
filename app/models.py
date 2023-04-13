@@ -27,7 +27,7 @@ class User(Base):
     middle_name = sa.Column(sa.String(length=40))
     last_name = sa.Column(sa.String(length=40), nullable=False)
     phone_number = sa.Column(sa.String(25), unique=True, nullable=False)
-    email_address = sa.Column(sa.String(70), unique=True)
+    email_address = sa.Column(sa.String(30), unique=True)
     verified = sa.Column(sa.Boolean(), server_default=text("False"))
     mobile_otp = sa.Column(sa.String)
     mobile_otp_expires_at = sa.Column(

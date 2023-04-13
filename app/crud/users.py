@@ -35,7 +35,6 @@ class UserCrud(Crud):
     def create(cls, db: Session, user: UserCreate) -> UserAllInfo:
         processed_user = cls.__process(user)
         new_user = cls.orm_model(**processed_user.dict())
-
         return cls.commit_data_to_db(db=db, data=new_user)
 
     @classmethod
@@ -48,7 +47,6 @@ class UserCrud(Crud):
 
     @classmethod
     def get_user_by_email(cls, db: Session, email: str):
-        
         return (
             db.query(cls.orm_model)
             .filter(cls.orm_model.email_address == email.lower())
