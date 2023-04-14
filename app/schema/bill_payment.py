@@ -26,32 +26,6 @@ class BillOutAllInfo(BillOut):
         orm_mode = True
 
 
-# FOR BILLS CRUD ONLY
-class UserInfo(BaseModel):
-    user_id: int
-    user_names: constr(strip_whitespace=True)
-
-
-class CreditorInfo(BaseModel):
-    creditor_id: int
-    creditor_name: constr(strip_whitespace=True)
-
-
-class CustomBillOut(BaseModel):
-    bill_id: int
-    user: UserInfo
-    creditor: CreditorInfo
-    starting_amount: float
-    total_paid_amount: float
-    paid: bool
-    description: str
-    current_balance: float
-    created_at: datetime
-    last_updated: datetime
-    first_payment_record_id: int
-    balance_detail: constr(strip_whitespace=True)
-
-
 # PAYMENTS
 class PaymentCreate(BaseModel):
     bill_id: int

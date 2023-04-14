@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, Body, Depends, Path, Query
 from app.schema.creditor import CreditorCreate, CreditorOut, CreditorUpdate
 from app.crud.creditors import CreditorCrud
 from app.utils.database import db_init
-from app.utils.error_utils import handle_empty_records, RaiseHttpException
+from app.utils.error_utils import handle_records, RaiseHttpException
 
 
 router = APIRouter(prefix="/creditors", tags=["creditors"])
@@ -73,8 +73,7 @@ def get_creditors(db: Session = Depends(db_init), skip: int = 0, limit: int = 10
     except Exception:
         RaiseHttpException.server_error()
     else:
-        handle_empty_records(records=creditors, records_name="creditors")
-        return creditors
+        return handle_records(records=creditors, records_name="creditors")
 
 
 @router.get("/{creditor_id}", response_model=CreditorOut)

@@ -28,10 +28,17 @@ def upgrade() -> None:
             sa.ForeignKey("bills.id", ondelete="CASCADE"),
             nullable=False,
         ),
+        sa.Column("note", sa.Text),
+        sa.Column(
+            "issuer",
+            sa.Enum("user", "creditor", name="payments_issuer_enum"),
+            nullable=False,
+        ),
         sa.Column("amount", sa.Numeric(10, 2), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=func.now()),
     )
 
 
 def downgrade() -> None:
-    op.drop_table(table)
+    op.drop_table(table),
+    sa.Enum("user", "creditor", name="payments_issuer_enum").drop(op.get_bind())

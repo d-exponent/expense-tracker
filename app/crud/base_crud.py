@@ -8,7 +8,12 @@ class Crud:
     orm_model = None
 
     @classmethod
+    def get_by_id_query(cls, db: Session, id: int):
+        return db.query(cls.orm_model).filter(cls.orm_model.id == id)
+
+    @classmethod
     def get_by_id(cls, db: Session, id: int):
+        print("🧰🧰🧰")
         return cls.get_by_id_query(db, id).first()
 
     @classmethod
@@ -18,10 +23,6 @@ class Crud:
         db.refresh(data)
 
         return data
-
-    @classmethod
-    def get_by_id_query(cls, db: Session, id: int):
-        return db.query(cls.orm_model).filter(cls.orm_model.id == id)
 
     @classmethod
     def get_records(cls, db: Session, skip: int, limit: int):

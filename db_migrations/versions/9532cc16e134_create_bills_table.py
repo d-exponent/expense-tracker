@@ -34,15 +34,16 @@ def upgrade() -> None:
             sa.ForeignKey("creditors.id", ondelete="SET NULL"),
             nullable=False,
         ),
-        sa.Column("description", sa.Text, nullable=False),
-        sa.Column("starting_amount", sa.Numeric(10, 2), nullable=False),
-        sa.Column("paid_amount", sa.Numeric(10, 2), server_default=text("0.00")),
+        sa.Column("total_credit_amount", sa.Numeric(10, 2), nullable=False),
+        sa.Column("total_paid_amount", sa.Numeric(10, 2), server_default=text("0.00")),
         sa.Column(
             "current_balance",
             sa.Numeric(10, 2),
-            sa.Computed("paid_amount - starting_amount"),
+            sa.Computed("total_paid_amount - total_credit_amount"),
         ),
-        sa.Column("paid", sa.Boolean, sa.Computed("paid_amount >= starting_amount")),
+        sa.Column(
+            "paid", sa.Boolean, sa.Computed("total_paid_amount >= total_credit_amount")
+        ),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=func.now()),
         sa.Column(
             "updated_at",

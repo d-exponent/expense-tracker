@@ -31,8 +31,10 @@ class RaiseHttpException:
         raise HTTPException(status_code=401, detail=msg, headers=headers)
 
 
-def handle_empty_records(records, records_name: str):
+def handle_records(records, records_name: str):
     if len(records) == 0:
         raise HTTPException(
             status_code=404, detail=f"There are no {records_name} at this time."
         )
+
+    return records

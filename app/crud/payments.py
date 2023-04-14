@@ -6,7 +6,7 @@ from app.utils.error_utils import RaiseHttpException
 from app.crud.bills import BillCrud
 
 
-class PaymentCrud(BillCrud, Crud):
+class PaymentCrud(Crud):
     orm_model = PaymentOrm
 
     @classmethod
@@ -21,13 +21,14 @@ class PaymentCrud(BillCrud, Crud):
 
     @classmethod
     def create(cls, db: Session, payment: PaymentCreate) -> PaymentOut:
-        # Start a new transaction
         processed_payment = cls.__process(payment=payment)
 
-        # Updates the bill record with the payment information
-        cls.init_bill_payment_transaction(db=db, payment=processed_payment)
+        BillCrud.init_bill_payment_transaction(db=db, payment=payment)
 
         db_payment = cls.orm_model(**processed_payment.dict())
 
-        # Commit the transaction
-        return cls.commit_data_to_db(db=db, data=db_payment)
+        db.add(db_payment)
+        db.commit()
+        db.refresh(db_payment)
+
+        return db_payment

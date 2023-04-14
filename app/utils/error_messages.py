@@ -4,7 +4,7 @@ class UserNotExist:
 
 class InvalidCredentials:
     email_password_required = (
-        "Invalid Credentials. Provide the email address and password for the user."
+        "Provide the valid email address and password for the user."
     )
     invalid_password = "Incorrect password"
     invalid_otp = "Invalid OTP"

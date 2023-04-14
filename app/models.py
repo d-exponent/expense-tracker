@@ -107,13 +107,14 @@ class Bill(Base):
         sa.ForeignKey("creditors.id", ondelete="SET NULL"),
         nullable=False,
     )
-    description = sa.Column(sa.Text, nullable=False)
-    starting_amount = sa.Column(sa.Numeric(10, 2), nullable=False)
-    paid_amount = sa.Column(sa.Numeric(10, 2), server_default=text("0.00"))
+    total_credit_amount = sa.Column(sa.Numeric(10, 2), server_default=text("0.00"))
+    total_paid_amount = sa.Column(sa.Numeric(10, 2), server_default=text("0.00"))
     current_balance = sa.Column(
-        sa.Numeric(10, 2), Computed("paid_amount - starting_amount")
+        sa.Numeric(10, 2), sa.Computed("total_paid_amount - total_credit_amount")
     )
-    paid = sa.Column(sa.Boolean, Computed("paid_amount >= starting_amount"))
+    paid = sa.Column(
+        sa.Boolean, sa.Computed("total_paid_amount >= total_credit_amount")
+    )
 
     created_at = sa.Column(sa.DateTime(timezone=True), server_default=func.now())
     updated_at = sa.Column(
@@ -132,6 +133,10 @@ class Payment(Base):
         sa.Integer,
         sa.ForeignKey("bills.id", ondelete="CASCADE"),
         nullable=False,
+    )
+    note = sa.Column(sa.Text)
+    issuer = sa.Column(
+        sa.Enum("user", "creditor", name="payments_issuer_enum"), nullable=False
     )
     amount = sa.Column(sa.Numeric(10, 2), nullable=False)
     created_at = sa.Column(sa.DateTime(timezone=True), server_default=func.now())

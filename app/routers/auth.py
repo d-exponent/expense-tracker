@@ -27,11 +27,14 @@ def user_sign_up(db: dbSession, user: u.UserCreate):
 
     user_otp = au.generate_otp(6)
     user_data = user.dict().copy()
+
+    # Update the user's data with otp information
     user_data.update(
         au.otp_updated_user_info(otp=user_otp, otp_expires=AddTime.add_minutes(mins=5))
     )
 
     try:
+        # Use otp updated user information to create a new user
         db_user: UserOrm = UserCrud.create(db=db, user=u.UserSignUp(**user_data))
     except IntegrityError as e:
         au.handle_integrity_error(error_message=str(e))
@@ -42,6 +45,7 @@ def user_sign_up(db: dbSession, user: u.UserCreate):
     phone_number = db_user.phone_number
 
     try:
+        # Send signup sms with otp to the new user
         SMSMessenger(full_name, phone_number).send_otp(user_otp, type="signup")
     except Exception:
         raise_server_error(em.SignupErrorMessages.server_error)
@@ -95,11 +99,11 @@ def update_password(
     if user is None:
         RaiseHttpException.bad_request("The user does not exist")
 
-    # Check if the password is correct
+    # Ensure the password is correct
     if not user.compare_password(password=credentials.password):
         au.raise_unauthorized("Invalid password")
 
-    # Check if the new password is the same as the old one
+    # Ensure the new password is not the same as the old one
     if user.compare_password(password=credentials.new_password):
         au.raise_bad_request("The new password is the same as the old one")
 

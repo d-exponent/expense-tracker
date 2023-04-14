@@ -12,22 +12,21 @@ def add_payment_amount(payment_amount: float, bill_amount) -> float:
 
 class BillCrud(Crud):
     orm_model = BillOrm
-    create_schema = bp.BillCreate
 
     @classmethod
     def create(cls, db: Session, bill: bp.BillCreate) -> bp.BillOutAllInfo:
         new_bill = cls.orm_model(**bill.dict())
-        return cls.commit_data_to_db(new_bill)
+        return cls.commit_data_to_db(db, data=new_bill)
 
     @classmethod
     def init_bill_payment_transaction(cls, db: Session, payment: bp.PaymentCreate):
-        bill: bp.BillOut = cls.get_by_id(db, id=payment.bill_id)
+        bill: bp.BillOut = cls.get_by_id(db=db, id=payment.bill_id)
 
         if bill is None:
             error_msg = f"There is no bill with the id {payment.bill_id}"
             RaiseHttpException.bad_request(msg=error_msg)
 
-        query = cls._get_by_id_query(db=db, id=payment.bill_id)
+        query = cls.get_by_id_query(db=db, id=payment.bill_id)
 
         to_update = {}
 

@@ -8,7 +8,7 @@ from app.utils.database import dbSession
 from app.schema.bill_payment import BillOut
 from app.utils.error_messages import UserErrorMessages
 from app.schema.user import UserCreate, UserOut, UserUpdate
-from app.utils.error_utils import handle_empty_records, RaiseHttpException
+from app.utils.error_utils import handle_records, RaiseHttpException
 
 
 class UserOutWithBills(UserOut):
@@ -76,8 +76,7 @@ def get_all_users(
     except Exception:
         raise_server_error()
     else:
-        handle_empty_records(records=users, records_name="users")
-        return users
+        return handle_records(records=users, records_name="users")
 
 
 @router.get("/{user_id}", response_model=UserOutWithBills, status_code=200)

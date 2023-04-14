@@ -1,33 +1,31 @@
 from pydantic import Field
-from sqlalchemy.orm import Session
 from typing import Annotated
-from fastapi import APIRouter, Depends, Query, Path, Body
+from fastapi import APIRouter, Query, Path, Body
 
-
-from app.utils.database import db_init
-from app.schema.bill_payment import BillOut, PaymentOut, PaymentCreate
+from app.utils.database import dbSession
+from app.schema import bill_payment as bp
 from app.crud.payments import PaymentCrud
-from app.utils.error_utils import handle_empty_records, RaiseHttpException
+from app.utils.error_utils import handle_records, RaiseHttpException
 
 
-class PaymentWithOwnerBill(PaymentOut):
-    owner: BillOut = Field(alias="owner_bill")
+class PaymentWithOwnerBill(bp.PaymentOut):
+    owner: bp.BillOut = Field(alias="owner_bill")
 
 
 router = APIRouter(prefix="/payments", tags=["payments"])
 
 
-@router.post("/", response_model=PaymentOut)
+@router.post("/", response_model=bp.PaymentOut)
 def create_payment(
-    db: Annotated[Session, Depends(db_init)],
-    payment_data: Annotated[PaymentCreate, Body()],
+    db: dbSession,
+    payment_data: Annotated[bp.PaymentCreate, Body()],
 ):
     return PaymentCrud.create(db=db, payment=payment_data)
 
 
-@router.get("/", status_code=200, response_model=list[PaymentOut])
+@router.get("/", status_code=200, response_model=list[bp.PaymentOut])
 def get_payments(
-    db: Session = Depends(db_init),
+    db: dbSession,
     skip: int = Query(default=0),
     limit: int = Query(default=100),
 ):
@@ -36,12 +34,11 @@ def get_payments(
     except Exception:
         RaiseHttpException.server_error()
     else:
-        handle_empty_records(records=payments, records_name="payments")
-        return payments
+        return handle_records(records=payments, records_name="payments")
 
 
 @router.get("/{payment_id}", status_code=200, response_model=PaymentWithOwnerBill)
-def get_payment(payment_id: int = Path(), db: Session = Depends(db_init)):
+def get_payment(*, payment_id: Annotated[int, Path()], db: dbSession):
     try:
         return PaymentCrud.get_by_id(db=db, id=payment_id)
     except Exception:
