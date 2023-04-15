@@ -1,5 +1,4 @@
-from fastapi import Request
-from fastapi import Depends
+from fastapi import Request, Depends
 from typing import Annotated
 
 from app.crud.users import UserCrud
@@ -69,7 +68,10 @@ def get_user(
 def restrict_to(*args):
     valid_roles = ["user", "staff", "admin"]
 
+    # Check that all args are strings
     assert all(isinstance(i, str) for i in args), "All arguments must be strings"
+
+    # CHeck that all args are in valid_roles list
     assert all(i in valid_roles for i in args), "Invalid role arguments"
 
     def handle_restrict_to(user: Annotated[UserOrm, Depends(get_user)]):

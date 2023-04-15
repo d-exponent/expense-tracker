@@ -13,7 +13,6 @@ class Crud:
 
     @classmethod
     def get_by_id(cls, db: Session, id: int):
-        print("🧰🧰🧰")
         return cls.get_by_id_query(db, id).first()
 
     @classmethod
