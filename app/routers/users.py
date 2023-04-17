@@ -6,6 +6,7 @@ from app.dependencies import auth
 from app.crud.users import UserCrud
 from app.utils.database import dbSession
 from app.schema.bill_payment import BillOut
+from app.routers import me
 from app.utils.error_messages import UserErrorMessages
 from app.schema.user import UserCreate, UserOut, UserUpdate
 from app.utils.error_utils import handle_records, RaiseHttpException
@@ -25,19 +26,17 @@ def handle_integrity_error(error_message):
     raise_server_error()
 
 
-router = APIRouter(prefix="/users", tags=["users"])
+router = APIRouter(prefix="/users", tags=["users"], dependencies=[auth.protect])
+router.include_router(me.router)
+
 raise_server_error = RaiseHttpException.server_error
+admin_user_restrict = Annotated[UserOut, Depends(auth.restrict_to("user", "admin"))]
 
-adminProtct = Annotated[UserOut, Depends(auth.restrict_to("user", "admin"))]
 
-
-@router.post("/", response_model=UserOut, status_code=201)
-def create_user(
-    user: UserCreate,
-    db: dbSession,
-    protect: adminProtct,
-    # Users should use the signup route ../auth/signup
-):
+@router.post(
+    "/", response_model=UserOut, status_code=201, dependencies=[auth.allow_user_admin]
+)
+def create_user(user: UserCreate, db: dbSession):
     UserCrud.handle_user_if_exists(db, phone=user.phone_number)
 
     try:
@@ -53,21 +52,23 @@ def create_user(
 @router.patch("/{user_id}", response_model=UserOut, status_code=200)
 def update_user(
     db: dbSession,
-    user_data: UserUpdate = Body(),
-    user_id: int = Path(),
+    user_id: Annotated[int, Path()],
+    user_data: Annotated[UserUpdate, Body()],
 ):
-    user_data.validate_data()
-    updated_user = UserCrud.update_by_id(
-        db=db, id=user_id, data=user_data.dict(), model_name_repr="user"
-    )
-
-    return updated_user
+    try:
+        user_data.validate_data()
+        updated_user = UserCrud.update_by_id(
+            db=db, id=user_id, data=user_data.dict(), model_name_repr="user"
+        )
+    except HTTPException as e:
+        raise_server_error(str(e))
+    else:
+        return updated_user
 
 
 @router.get("/", response_model=list[UserOut], status_code=200)
 def get_all_users(
     db: dbSession,
-    # protect: Annotated[UserOut, Depends(auth.restrict_to("user"))],
     skip: int = Query(default=0),
     limit: int = Query(default=100),
 ):
@@ -82,7 +83,7 @@ def get_all_users(
 @router.get("/{user_id}", response_model=UserOutWithBills, status_code=200)
 def get_user(
     db: dbSession,
-    user_id: int = Path(),
+    user_id: Annotated[int, Path()],
     phone: str = Query(default=None, description="Retrieve the user by phone number"),
     email: str = Query(default=None, description="Retrive the user by email address"),
 ):
@@ -107,6 +108,9 @@ def get_user(
 
 @router.delete("/{user_id}", status_code=204)
 def delete_user(db: dbSession, user_id: Annotated[int, Path()]):
-    UserCrud.delete_by_id(db=db, id=user_id)
-
-    return {"message": "Deleted successfully"}
+    try:
+        UserCrud.delete_by_id(db=db, id=user_id)
+    except Exception:
+        raise_server_error()
+    else:
+        return {"message": "Deleted successfully"}

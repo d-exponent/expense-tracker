@@ -115,6 +115,7 @@ def decode_access_token(access_token: str) -> dict:
         return jwt.decode(access_token, JWT_SECRET, algorithms=JWT_ALGORITYHM)
     except JWTError as e:
         error_msg = str(e)
+
         if "Signature has expired" in error_msg:
             raise_unauthorized(msg=EXPIRED_JWT_MESSAGE)
 

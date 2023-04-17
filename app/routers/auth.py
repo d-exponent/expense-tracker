@@ -1,13 +1,13 @@
 from typing import Annotated
 from sqlalchemy.exc import IntegrityError
-from fastapi import APIRouter, Path, Response, Body, Depends
+from fastapi import APIRouter, Path, Response, Body
 
 from app.routers import login
 from app.crud.users import UserCrud
 from app.utils import auth_utils as au
 from app.utils.sms import SMSMessenger
 from app.models import User as UserOrm
-from app.dependencies.auth import get_token_payload
+from app.dependencies.auth import protect
 from app.utils.database import dbSession
 from app.utils.app_utils import AddTime
 from app.utils.error_utils import RaiseHttpException
@@ -50,8 +50,11 @@ def user_sign_up(db: dbSession, user: u.UserCreate):
     except Exception:
         raise_server_error(em.SignupErrorMessages.server_error)
 
+    response_msg = f"An otp was sent to {db_user.phone_number}."
+    response_msg = f"{response_msg} Login with the otp to complete your registration"
+
     return {
-        "message": f"An otp was sent to {db_user.phone_number}. Login with the otp to complete your registration",
+        "message": response_msg,
         "data": u.UserOut.from_orm(db_user),
     }
 
@@ -87,7 +90,7 @@ def get_otp(
 def update_password(
     db: dbSession,
     credentials: Annotated[u.UserUpdatePassword, Body()],
-    token_payload: Annotated[dict, Depends(get_token_payload)],
+    token_payload: Annotated[dict, protect],
 ):
     if credentials.new_password != credentials.new_password_confirm:
         RaiseHttpException.bad_request("The passwords do not match")

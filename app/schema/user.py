@@ -38,7 +38,9 @@ class UserUpdate(BaseModel):
     last_name: constr(max_length=40, strip_whitespace=True) = None
     image_url: constr(strip_whitespace=True) = None
     email_address: EmailStr | None
-    phone_number: str | None
+    phone_number: constr(
+        max_length=25, regex=e_164_fmt_regex, strip_whitespace=True
+    ) = None
 
     def validate_data(self):
         """
