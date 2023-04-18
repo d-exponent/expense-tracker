@@ -2,7 +2,7 @@ from typing import Annotated
 from sqlalchemy.exc import IntegrityError
 from fastapi import APIRouter, Path, Response, Body
 
-from app.routers import login
+from app.routers import login, me
 from app.crud.users import UserCrud
 from app.utils import auth_utils as au
 from app.utils.sms import SMSMessenger
@@ -17,6 +17,8 @@ from app.schema import user as u
 
 router = APIRouter(prefix="/auth", tags=["auth", "authentication"])
 router.include_router(login.router)
+router.include_router(me.router)
+
 
 raise_server_error = RaiseHttpException.server_error
 

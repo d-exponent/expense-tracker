@@ -1,5 +1,7 @@
 from pydantic import BaseModel, EmailStr, constr
 from datetime import datetime
+
+from app.schema.bill_payment import BillOut
 from app.utils.app_utils import remove_none_props_from_dict_recursive as rnd
 from app.utils.error_utils import RaiseHttpException
 
@@ -48,19 +50,23 @@ class UserUpdate(BaseModel):
         Ensures Email addres and phone number won't be updated
         """
 
-        raise_bad_request = RaiseHttpException.bad_request
-
         if self.email_address:
-            raise_bad_request("Email address cannot be updated via this route")
+            RaiseHttpException.bad_request(
+                "Email address cannot be updated via this route"
+            )
 
         if self.phone_number:
-            raise_bad_request("Phone number cannot be updated via this route")
+            RaiseHttpException.bad_request(
+                "Phone number cannot be updated via this route"
+            )
 
         # CHECK THAT THERE IS AT LEAST ONE VALUE TO BE UPDATED
         filtered = rnd(self.__dict__)
 
         if len(filtered.items()) == 0:
-            raise_bad_request("There are no properties to be updated.")
+            RaiseHttpException.bad_request("Provide at least one value to update")
+
+        return filtered
 
 
 class UserCreate(UserBase, UserPassword):
@@ -91,6 +97,10 @@ class UserOut(UserBase):
         orm_mode = True
 
 
+class UserOutWithBills(UserOut):
+    user_bills: list[BillOut] = []
+
+
 class UserAuthSuccess(BaseModel):
     user: UserOut
     access_token: str
@@ -108,7 +118,7 @@ class UserSignUp(UserCreate):
 
 # Password must never ever ever ever be sent from our server
 class UserAllInfo(UserOut):
-    mobile_otp: str
+    mobile_otp: str = None
     mobile_otp_expires_at: datetime = None
     is_active: bool = True
     created_at: datetime

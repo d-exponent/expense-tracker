@@ -59,8 +59,10 @@ class UserCrud(Crud):
 
     @classmethod
     def update_user_by_phone(cls, db: Session, phone: str, update_data: dict):
-        cls.__get_user_by_phone_query(db, phone).update(update_data)
+        query = cls.__get_user_by_phone_query(db, phone)
+        query.update(update_data)
         db.commit()
+        return query.first()
 
     @classmethod
     def handle_user_if_exists(cls, db: Session, phone: str):

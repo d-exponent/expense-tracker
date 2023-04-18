@@ -2,6 +2,7 @@ from fastapi import Request, Depends
 from typing import Annotated
 
 from app.crud.users import UserCrud
+from app.schema.user import UserAllInfo
 from app.utils import auth_utils as au
 from app.models import User as UserOrm
 from app.utils.database import dbSession
@@ -36,6 +37,7 @@ def get_token(
     header_token: Annotated[token_types, Depends(get_token_from_auth_header)],
 ):
     access_token = header_token if header_token else cookie_token
+
     if access_token is None:
         au.raise_unauthorized(msg="You are not logged in. Please login")
 
@@ -47,23 +49,26 @@ def get_token(
 
 def get_token_payload(token: Annotated[str, Depends(get_token)]):
     try:
-        return au.decode_access_token(access_token=token)
+        payload = au.decode_access_token(access_token=token)
     except Exception:
         au.raise_unauthorized("Invalid access token. Please Login")
+    else:
+        return payload
 
 
 protect = Depends(get_token_payload)
 
 
-def get_user(db: dbSession, payload: Annotated[dict, protect]):
+def get_user(db: dbSession, payload: Annotated[dict, protect]) -> UserAllInfo:
     user: UserOrm = UserCrud.get_by_id(db, id=payload.get("id"))
+
     if user is None:
         au.raise_unauthorized(msg="Invalid user. Please login with valid credentials")
 
     if user.is_active is False:
         au.raise_unauthorized(msg="Invalid user. Please login with valid credentials")
 
-    return user
+    return UserAllInfo.from_orm(user)
 
 
 def restrict_to(*args):

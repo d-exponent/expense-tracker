@@ -1,36 +1,25 @@
 from typing import Annotated
 from sqlalchemy.exc import IntegrityError
-from fastapi import APIRouter, HTTPException, Path, Query, Body, Depends
+from fastapi import APIRouter, HTTPException, Path, Query, Body
 
 from app.dependencies import auth
 from app.crud.users import UserCrud
 from app.utils.database import dbSession
-from app.schema.bill_payment import BillOut
-from app.routers import me
-from app.utils.error_messages import UserErrorMessages
-from app.schema.user import UserCreate, UserOut, UserUpdate
+from app.schema.user import UserCreate, UserOut, UserUpdate, UserOutWithBills
 from app.utils.error_utils import handle_records, RaiseHttpException
-
-
-class UserOutWithBills(UserOut):
-    user_bills: list[BillOut] = []
 
 
 def handle_integrity_error(error_message):
     if "users_password_email_ck" in error_message:
-        raise HTTPException(status_code=400, detail="Provide the email and password")
+        RaiseHttpException.bad_request("Provide the email and password")
 
     if "users_phone_email_key" in error_message:
-        raise HTTPException(status_code=400, detail=UserErrorMessages.already_exists)
+        RaiseHttpException.bad_request("The user already exists")
 
-    raise_server_error()
+    RaiseHttpException.server_error()
 
 
 router = APIRouter(prefix="/users", tags=["users"], dependencies=[auth.protect])
-router.include_router(me.router)
-
-raise_server_error = RaiseHttpException.server_error
-admin_user_restrict = Annotated[UserOut, Depends(auth.restrict_to("user", "admin"))]
 
 
 @router.post(
@@ -44,7 +33,7 @@ def create_user(user: UserCreate, db: dbSession):
     except IntegrityError as error:
         handle_integrity_error(str(error))
     except Exception:
-        raise_server_error()
+        RaiseHttpException.server_error()
     else:
         return user
 
@@ -61,7 +50,7 @@ def update_user(
             db=db, id=user_id, data=user_data.dict(), model_name_repr="user"
         )
     except HTTPException as e:
-        raise_server_error(str(e))
+        RaiseHttpException.server_error(str(e))
     else:
         return updated_user
 
@@ -75,7 +64,7 @@ def get_all_users(
     try:
         users = UserCrud.get_records(db=db, skip=skip, limit=limit)
     except Exception:
-        raise_server_error()
+        RaiseHttpException.server_error()
     else:
         return handle_records(records=users, records_name="users")
 
@@ -92,7 +81,7 @@ def get_user(
     else:
         if phone is None and email is None:
             RaiseHttpException.bad_request(
-                msg="Provide the user's phone number or email address"
+                "Provide the user's phone number or email address"
             )
 
         if phone:
@@ -111,6 +100,6 @@ def delete_user(db: dbSession, user_id: Annotated[int, Path()]):
     try:
         UserCrud.delete_by_id(db=db, id=user_id)
     except Exception:
-        raise_server_error()
+        RaiseHttpException.server_error()
     else:
         return {"message": "Deleted successfully"}
