@@ -7,7 +7,6 @@ from jose import jwt, JWTError
 from datetime import timedelta, datetime
 
 from app.utils.error_utils import RaiseHttpException
-from app.utils.error_messages import SignupErrorMessages
 from app.schema.user import UserAuthSuccess, UserOut
 
 raise_unauthorized = RaiseHttpException.unauthorized_with_headers
@@ -35,31 +34,22 @@ AUTH_COOKIE_EXPIRES = get_timestamp_secs(TOKEN_EXPIRES)
 LOGOUT_COOKIE_EXPIRES = get_timestamp_secs(CURRENT_UTC_TIME + timedelta(seconds=1))
 
 
-def handle_integrity_error(error_message):
-    """Raises HttpException by processing the error message"""
-
-    if "already exists" in error_message:
-        raise_bad_request(SignupErrorMessages.already_exists)
-
-    if "users_password_email_ck" in error_message:
-        raise_bad_request(SignupErrorMessages.provide_credentials)
-
-    if "users_phone_email_key" in error_message:
-        raise_bad_request(SignupErrorMessages.already_exists)
-
-    RaiseHttpException.server_error(SignupErrorMessages.server_error)
-
-
-def otp_updated_user_info(otp: str, otp_expires: datetime):
+def config_users_otp_columns(
+    otp: str = None, otp_expires: datetime = None, verified: bool = False
+) -> dict:
     """
-    Returns a dictionary for updating the db user mobile otp colums
+    Returns a dictionary for updating the db user mobile otp columns
     """
-    assert isinstance(otp, str), "Otp must be a string"
+    otp_expires_is_date = isinstance(otp_expires, datetime)
+    verified_is_bool = isinstance(verified, bool)
 
-    return {
-        "mobile_otp": otp,
-        "mobile_otp_expires_at": otp_expires,
-    }
+    assert otp is None or isinstance(otp, str), "otp must be a string"
+    assert otp_expires is None or otp_expires_is_date, "otp_expires must be a datetime"
+    assert verified is None or verified_is_bool, "verified must be a boolean"
+
+    config_data = {"otp": otp, "otp_expires_at": otp_expires, "verified": verified}
+
+    return config_data
 
 
 def generate_otp(num_of_digits: int = 4):

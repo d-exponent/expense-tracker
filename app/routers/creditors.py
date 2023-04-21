@@ -55,7 +55,7 @@ def get_creditors(db: dbSession, skip: int = 0, limit: int = 100):
     except Exception:
         raise_server_error()
     else:
-        return er.handle_records(records=creditors, records_name="creditors")
+        return er.handle_records(records=creditors, table_name="creditors")
 
 
 @router.get("/{creditor_id}", response_model=cr.CreditorOut)

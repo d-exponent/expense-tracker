@@ -45,10 +45,8 @@ def update_user(
     user_data: Annotated[UserUpdate, Body()],
 ):
     try:
-        user_data.validate_data()
-        updated_user = UserCrud.update_by_id(
-            db=db, id=user_id, data=user_data.dict(), model_name_repr="user"
-        )
+        data = user_data.validate_data()
+        updated_user = UserCrud.update_by_id(db, user_id, data, "user")
     except HTTPException as e:
         RaiseHttpException.server_error(str(e))
     else:
@@ -66,7 +64,7 @@ def get_all_users(
     except Exception:
         RaiseHttpException.server_error()
     else:
-        return handle_records(records=users, records_name="users")
+        return handle_records(records=users, table_name="users")
 
 
 @router.get("/{user_id}", response_model=UserOutWithBills, status_code=200)

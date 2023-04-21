@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from app.crud.base_crud import Crud
 from app.models import Bill as BillOrm
 from app.schema import bill_payment as bp
-from app.utils.error_utils import RaiseHttpException
+from app.utils.custom_exceptions import CreatePaymentException
 
 
 def add_payment_amount(payment_amount: float, bill_amount) -> float:
@@ -24,7 +24,7 @@ class BillCrud(Crud):
 
         if bill is None:
             error_msg = f"There is no bill with the id {payment.bill_id}"
-            RaiseHttpException.bad_request(msg=error_msg)
+            raise CreatePaymentException(error_msg)
 
         query = cls.get_by_id_query(db=db, id=payment.bill_id)
 

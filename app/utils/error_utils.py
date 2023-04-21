@@ -31,10 +31,10 @@ class RaiseHttpException:
         raise HTTPException(status_code=401, detail=msg, headers=headers)
 
 
-def handle_records(records, records_name: str):
+def handle_records(records, table_name: str):
     if len(records) == 0:
         raise HTTPException(
-            status_code=404, detail=f"There are no {records_name} at this time."
+            status_code=404, detail=f"There are no {table_name} at this time."
         )
 
     return records

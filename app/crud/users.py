@@ -5,7 +5,7 @@ from bcrypt import gensalt, hashpw
 from app.crud.base_crud import Crud
 from app.models import User as UserOrm
 from app.utils.app_utils import to_title_case
-from app.schema.user import UserCreate, UserAllInfo
+from app.schema.user import UserCreate
 from app.utils.error_utils import RaiseHttpException
 
 
@@ -32,7 +32,7 @@ class UserCrud(Crud):
         return user
 
     @classmethod
-    def create(cls, db: Session, user: UserCreate) -> UserAllInfo:
+    def create(cls, db: Session, user: UserCreate) -> UserOrm:
         processed_user = cls.__process(user)
         new_user = cls.orm_model(**processed_user.dict())
         return cls.commit_data_to_db(db=db, data=new_user)
@@ -42,11 +42,11 @@ class UserCrud(Crud):
         return db.query(cls.orm_model).filter(cls.orm_model.phone_number == phone)
 
     @classmethod
-    def get_user_by_phone(cls, db: Session, phone: str):
+    def get_user_by_phone(cls, db: Session, phone: str) -> UserOrm:
         return cls.__get_user_by_phone_query(db, phone).first()
 
     @classmethod
-    def get_user_by_email(cls, db: Session, email: str):
+    def get_user_by_email(cls, db: Session, email: str) -> UserOrm:
         return (
             db.query(cls.orm_model)
             .filter(cls.orm_model.email_address == email.lower())
@@ -54,11 +54,13 @@ class UserCrud(Crud):
         )
 
     @classmethod
-    def get_user_by_otp(cls, db: Session, otp: str):
-        return db.query(cls.orm_model).filter(cls.orm_model.mobile_otp == otp).first()
+    def get_user_by_otp(cls, db: Session, otp: str) -> UserOrm:
+        return db.query(cls.orm_model).filter(cls.orm_model.otp == otp).first()
 
     @classmethod
-    def update_user_by_phone(cls, db: Session, phone: str, update_data: dict):
+    def update_user_by_phone(
+        cls, db: Session, phone: str, update_data: dict
+    ) -> UserOrm:
         query = cls.__get_user_by_phone_query(db, phone)
         query.update(update_data)
         db.commit()

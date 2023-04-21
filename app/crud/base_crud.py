@@ -20,7 +20,6 @@ class Crud:
         db.add(data)
         db.commit()
         db.refresh(data)
-
         return data
 
     @classmethod

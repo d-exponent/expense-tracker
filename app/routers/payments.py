@@ -2,10 +2,10 @@ from pydantic import Field
 from typing import Annotated
 from fastapi import APIRouter, Query, Path, Body
 
+from app.dependencies import auth
 from app.utils.database import dbSession
 from app.schema import bill_payment as bp
-from app.crud.payments import PaymentCrud
-from app.dependencies import auth
+from app.crud.payments import PaymentCrud, CreatePaymentException
 from app.utils.error_utils import handle_records, RaiseHttpException
 
 
@@ -20,6 +20,8 @@ router = APIRouter(prefix="/payments", tags=["payments"], dependencies=[auth.pro
 def create_payment(db: dbSession, payment_data: Annotated[bp.PaymentCreate, Body()]):
     try:
         return PaymentCrud.create(db=db, payment=payment_data)
+    except CreatePaymentException as e:
+        RaiseHttpException.bad_request(str(e))
     except Exception:
         RaiseHttpException.server_error()
 
@@ -33,7 +35,7 @@ def get_payments(
     except Exception:
         RaiseHttpException.server_error()
     else:
-        return handle_records(records=payments, records_name="payments")
+        return handle_records(records=payments, table_name="payments")
 
 
 @router.get("/{payment_id}", status_code=200, response_model=PaymentWithOwnerBill)

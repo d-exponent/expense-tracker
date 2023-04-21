@@ -1,10 +1,9 @@
 import sqlalchemy as sa
-from sqlalchemy.schema import Computed
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql.expression import text, func
 
 from app.database.sqlalchemy_config import Base
-from app.utils.auth_utils import authenticate_password
+from app.utils import auth_utils as au
 
 
 class User(Base):
@@ -30,8 +29,8 @@ class User(Base):
     phone_number = sa.Column(sa.String(25), unique=True, nullable=False)
     email_address = sa.Column(sa.String(30), unique=True)
     verified = sa.Column(sa.Boolean(), server_default=text("False"))
-    mobile_otp = sa.Column(sa.String)
-    mobile_otp_expires_at = sa.Column(
+    otp = sa.Column(sa.String)
+    otp_expires_at = sa.Column(
         sa.DateTime(timezone=True),
     )
     role = sa.Column(sa.Enum("user", "staff", "admin", name="users_role_enum"))
@@ -51,9 +50,7 @@ class User(Base):
     user_bills = relationship("Bill", back_populates="user_owner")
 
     def compare_password(self, password) -> bool:
-        return authenticate_password(
-            plain_password=password, hashed_password=self.password
-        )
+        return au.authenticate_password(password, self.password)
 
 
 class Creditor(Base):

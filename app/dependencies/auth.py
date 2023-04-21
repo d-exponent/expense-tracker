@@ -68,7 +68,7 @@ def get_user(db: dbSession, payload: Annotated[dict, protect]) -> UserAllInfo:
     if user.is_active is False:
         au.raise_unauthorized(msg="Invalid user. Please login with valid credentials")
 
-    return UserAllInfo.from_orm(user)
+    return user
 
 
 def restrict_to(*args):
@@ -79,7 +79,7 @@ def restrict_to(*args):
     valid_roles = ["user", "staff", "admin"]
     assert all(i in valid_roles for i in args), "Invalid role arguments"
 
-    def handle_restrict_to(user: Annotated[UserOrm, Depends(get_user)]):
+    def handle_restrict_to(user: Annotated[UserAllInfo, Depends(get_user)]):
         if user.role not in args:
             au.RaiseHttpException.forbidden(
                 "Access Denied!! You do not have permission"

@@ -109,8 +109,8 @@ class UserAuthSuccess(BaseModel):
 
 
 class UserSignUp(UserCreate):
-    mobile_otp: str = None
-    mobile_otp_expires_at: datetime = None
+    otp: str = None
+    otp_expires_at: datetime = None
 
     class Config:
         orm_mode = True
@@ -118,8 +118,8 @@ class UserSignUp(UserCreate):
 
 # Password must never ever ever ever be sent from our server
 class UserAllInfo(UserOut):
-    mobile_otp: str = None
-    mobile_otp_expires_at: datetime = None
+    otp: str = None
+    otp_expires_at: datetime = None
     is_active: bool = True
     created_at: datetime
     verified: bool

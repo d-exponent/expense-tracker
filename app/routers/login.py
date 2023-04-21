@@ -1,11 +1,10 @@
 from typing import Annotated
-from sqlalchemy.orm import Session
 from datetime import datetime
 from app.utils import error_messages as em
-from fastapi import APIRouter, Body, Depends, Response, Request
+from fastapi import APIRouter, Body, Response, Request
 from app.schema.user import UserAuthSuccess, UserLoginEmailPassword
 from app.crud.users import UserCrud
-from app.utils.database import db_init
+from app.utils.database import dbSession
 from app.utils import auth_utils as au
 
 
@@ -15,7 +14,7 @@ invalidCred = em.InvalidCredentials
 
 @router.post("/", response_model=UserAuthSuccess, status_code=201)
 def login_with_email_password(
-    db: Annotated[Session, Depends(db_init)],
+    db: dbSession,
     user_data: Annotated[UserLoginEmailPassword, Body()],
     response: Response,
 ):
@@ -35,33 +34,26 @@ def login_with_email_password(
 
 
 @router.get("/user-otp")
-def login_with_otp(
-    db: Annotated[Session, Depends(db_init)],
-    response: Response,
-    request: Request,
-):
-    my_otp = request.headers.get("Mobile_Otp")
-    user = UserCrud.get_user_by_otp(db, my_otp)
+def login_with_otp(db: dbSession, response: Response, request: Request):
+    my_otp = request.headers.get("User_Otp")
+    if my_otp is None:
+        au.raise_bad_request("Provide the one-time password for the user")
 
+    user = UserCrud.get_user_by_otp(db, my_otp)
     if user is None:
         au.raise_unauthorized(invalidCred.invalid_otp)
 
     current_timestamp_secs = au.get_timestamp_secs(datetime.utcnow())
-    otp_expire_timestamp_secs = au.get_timestamp_secs(user.mobile_otp_expires_at)
+    otp_expire_timestamp_secs = au.get_timestamp_secs(user.otp_expires_at)
 
     if current_timestamp_secs > otp_expire_timestamp_secs:
         au.raise_unauthorized(invalidCred.expired_otp)
 
-    to_update_data = {
-        "verified": True,
-        "mobile_otp": None,
-        "mobile_otp_expires_at": None,
-    }
-
-    UserCrud.update_user_by_phone(db, user.phone_number, to_update_data)
+    update_data = au.config_users_otp_columns(verified=True)
+    UserCrud.update_user_by_phone(db, user.phone_number, update_data)
     access_token = au.handle_create_token_for_user(user_data=user)
-    au.set_cookie_header_response(response=response, token=access_token)
 
+    au.set_cookie_header_response(response=response, token=access_token)
     return au.get_auth_success_response(
         token=access_token, user_orm_data=user, message="Login successful"
     )

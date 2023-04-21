@@ -16,7 +16,7 @@ raise_server_error = RaiseHttpException.server_error
 raise_bad_request_error = RaiseHttpException.bad_request
 
 router = APIRouter(
-    prefix="/bills", tags=["bills", "debts"], dependencies=[auth.allow_only_user]
+    prefix="/bills", tags=["bills"], dependencies=[auth.allow_only_user]
 )
 
 
@@ -52,7 +52,7 @@ def get_bills(
     except Exception:
         raise_server_error()
     else:
-        return handle_records(records=bills, records_name="bills")
+        return handle_records(records=bills, table_name="bills")
 
 
 @router.get("/{bill_id}", response_model=BillWithPayments)

@@ -5,6 +5,7 @@ account_sid = config("TWILIO_ACCOUNT_SID")
 auth_token = config("TWILIO_AUTH_TOKEN")
 from_phone_number = config("TWILLO_FROM_PHONE_NUMBER")
 
+
 def add_header_greeting(name: str, msg: str):
     """
     Handles prepending the header and greeting to a string
@@ -38,20 +39,19 @@ class SMSMessenger:
             to=self.__to,
         )
 
-    def send_otp(self, otp: str, type: str = "auth"):
+    def send_otp(self, otp: str):
         """
         Sends an OTP sms message to the receiver
         """
-        if type == "signup":
-            sms_message = add_header_greeting(
-                name=self.__receiver_name, msg=signup_sms.replace("<otp>", otp)
-            )
-        elif type == "login":
-            sms_message = add_header_greeting(
-                name=self.__receiver_name, msg=login_sms.replace("<otp>", otp)
-            )
-        else:
-            msg = f"Your one time verification code is {otp}. It expires in 2 minutes"
-            sms_message = add_header_greeting(name=self.__receiver_name, msg=msg)
+        msg = add_header_greeting(
+            name=self.__receiver_name,
+            msg=f"Your one time verification code is {otp}. It expires in 2 minutes",
+        )
 
-        self.__send_sms(message=sms_message)
+        self.__send_sms(message=msg)
+
+    def send_signup_msg(self, otp: str):
+        msg = add_header_greeting(
+            name=self.__receiver_name, msg=signup_sms.replace("<otp>", otp)
+        )
+        self.__send_sms(message=msg)

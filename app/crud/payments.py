@@ -1,8 +1,8 @@
 from sqlalchemy.orm import Session
+from app.utils.custom_exceptions import CreatePaymentException
 from app.crud.base_crud import Crud
 from app.models import Payment as PaymentOrm
 from app.schema.bill_payment import PaymentCreate, PaymentOut
-from app.utils.error_utils import RaiseHttpException
 from app.crud.bills import BillCrud
 
 
@@ -12,8 +12,8 @@ class PaymentCrud(Crud):
     @classmethod
     def __process(cls, payment: PaymentCreate):
         if payment.issuer != "user" and payment.issuer != "creditor":
-            RaiseHttpException.bad_request(
-                msg="A payment must have an issuer as a user or a creditor"
+            raise CreatePaymentException(
+                "A payment must have an issuer as a user or a creditor"
             )
 
         # Might seem dumb at the moment but we may modify the payment in future versions
