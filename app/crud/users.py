@@ -7,6 +7,7 @@ from app.models import User as UserOrm
 from app.utils.app_utils import to_title_case
 from app.schema.user import UserCreate
 from app.utils.error_utils import RaiseHttpException
+from app.utils import custom_exceptions as ce
 
 
 class UserCrud(Crud):
@@ -75,4 +76,14 @@ class UserCrud(Crud):
     def update_user_password(cls, db: Session, user_id: int, new_password: str):
         hashed_password = cls.__hash_password(password=new_password)
         cls.get_by_id_query(db=db, id=user_id).update({"password": hashed_password})
+        db.commit()
+
+    @classmethod
+    def handle_delete_me(cls, db: Session, id: int):
+        query = cls.get_by_id_query(db=db, id=id)
+
+        if query.first() is None:
+            raise ce.UserNotFoundException
+
+        query.update({"is_active": False})
         db.commit()

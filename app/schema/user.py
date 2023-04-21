@@ -43,6 +43,7 @@ class UserUpdate(BaseModel):
     phone_number: constr(
         max_length=25, regex=e_164_fmt_regex, strip_whitespace=True
     ) = None
+    password: str = None
 
     def validate_data(self):
         """
@@ -59,6 +60,9 @@ class UserUpdate(BaseModel):
             RaiseHttpException.bad_request(
                 "Phone number cannot be updated via this route"
             )
+
+        if self.password:
+            RaiseHttpException.bad_request("Password cannot be updated via this route")
 
         # CHECK THAT THERE IS AT LEAST ONE VALUE TO BE UPDATED
         filtered = rnd(self.__dict__)

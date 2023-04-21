@@ -4,7 +4,6 @@ from typing import Annotated
 from app.crud.users import UserCrud
 from app.schema.user import UserAllInfo
 from app.utils import auth_utils as au
-from app.models import User as UserOrm
 from app.utils.database import dbSession
 
 
@@ -60,13 +59,13 @@ protect = Depends(get_token_payload)
 
 
 def get_user(db: dbSession, payload: Annotated[dict, protect]) -> UserAllInfo:
-    user: UserOrm = UserCrud.get_by_id(db, id=payload.get("id"))
+    user = UserCrud.get_by_id(db, id=payload.get("id"))
 
     if user is None:
         au.raise_unauthorized(msg="Invalid user. Please login with valid credentials")
 
     if user.is_active is False:
-        au.raise_unauthorized(msg="Invalid user. Please login with valid credentials")
+        au.raise_unauthorized(msg="This user's profile has been deleted.")
 
     return user
 

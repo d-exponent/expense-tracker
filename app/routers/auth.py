@@ -50,7 +50,7 @@ def user_sign_up(db: dbSession, user: u.UserCreate):
         db_user = UserCrud.create(db=db, user=u.UserSignUp(**user_data))
     except IntegrityError as e:
         handle_integrity_error(str(e))
-    except Exception as e:
+    except Exception:
         RaiseHttpException.server_error(em.SignupErrorMessages.server_error)
     else:
         full_name = f"{db_user.first_name} {db_user.last_name}"
