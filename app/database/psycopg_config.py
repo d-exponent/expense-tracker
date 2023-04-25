@@ -1,7 +1,11 @@
 from psycopg2 import connect
-from app.database.config import user, password, db
+from app.settings import settings
 
 
 connection = connect(
-    database=db, user=user, password=password, port="5432", host="localhost"
+    database=settings.db_name,
+    user=settings.db_username,
+    password=settings.db_password,
+    port=settings.db_port,
+    host=settings.db_host,
 )

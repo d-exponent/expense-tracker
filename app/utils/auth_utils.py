@@ -8,6 +8,7 @@ from datetime import timedelta, datetime
 
 from app.utils.error_utils import RaiseHttpException
 from app.schema.user import UserAuthSuccess, UserOut
+from app.settings import settings
 
 raise_unauthorized = RaiseHttpException.unauthorized_with_headers
 raise_bad_request = RaiseHttpException.bad_request
@@ -21,15 +22,15 @@ def get_timestamp_secs(date: datetime) -> int:
 
 
 # JWT CONFIG
-JWT_SECRET = config("JWT_SECRET")
-JWT_ALGORITYHM = config("JWT_ALGORITHM")
-JWT_EXPIRES_AFTER = config("JWT_EXPIRES_AFTER")
+JWT_SECRET = settings.jwt_secret
+JWT_ALGORITYHM = settings.jwt_algorithm
+JWT_EXPIRES_AFTER = settings.jwt_expires_after
+ACEESS_TOKEN_COOKIE_KEY = settings.cookie_key
 EXPIRED_JWT_MESSAGE = "Your session has expired. Please login"
-ACEESS_TOKEN_COOKIE_KEY = config("COOKIE_KEY")
 
 # TOKEN-COOKIE DATE-TIME CONFIG
 CURRENT_UTC_TIME = datetime.utcnow()
-TOKEN_EXPIRES = CURRENT_UTC_TIME + timedelta(days=int(JWT_EXPIRES_AFTER))
+TOKEN_EXPIRES = CURRENT_UTC_TIME + timedelta(days=JWT_EXPIRES_AFTER)
 AUTH_COOKIE_EXPIRES = get_timestamp_secs(TOKEN_EXPIRES)
 LOGOUT_COOKIE_EXPIRES = get_timestamp_secs(CURRENT_UTC_TIME + timedelta(seconds=1))
 

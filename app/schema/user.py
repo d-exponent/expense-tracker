@@ -4,6 +4,7 @@ from datetime import datetime
 from app.schema.bill_payment import BillOut
 from app.utils.app_utils import remove_none_props_from_dict_recursive as rnd
 from app.utils.error_utils import RaiseHttpException
+from app.schema.response import DefaultResponse
 
 
 """
@@ -134,3 +135,18 @@ class UserAllInfo(UserOut):
 
     class Config:
         orm_mode = True
+
+
+# RESPONSE TYPES
+
+
+class GetUsers(DefaultResponse):
+    data: list[UserOut]
+
+
+class GetUser(DefaultResponse):
+    data: UserOutWithBills
+
+
+class CreateUser(GetUser):
+    data: UserOut

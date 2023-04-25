@@ -1,4 +1,3 @@
-from decouple import config
 from sqlalchemy.orm import Session
 from bcrypt import gensalt, hashpw
 
@@ -15,7 +14,7 @@ class UserCrud(Crud):
 
     @classmethod
     def __hash_password(cls, password: str) -> bytes:
-        password_bytes = password.encode(config("ENCODE_FMT"))
+        password_bytes = password.encode("utf-8")
         return hashpw(password_bytes, gensalt())
 
     @classmethod

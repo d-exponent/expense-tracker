@@ -1,7 +1,9 @@
 from typing import Annotated
 from datetime import datetime
-from app.utils import error_messages as em
 from fastapi import APIRouter, Body, Response, Request
+
+
+from app.utils import error_messages as em
 from app.schema.user import UserAuthSuccess, UserLoginEmailPassword
 from app.crud.users import UserCrud
 from app.utils.database import dbSession

@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from app.routers import users, bills, creditors, payments, auth
 
-router = APIRouter(prefix="/api")
+router = APIRouter(prefix="/api/v1")
 
 router.include_router(users.router)
 router.include_router(bills.router)

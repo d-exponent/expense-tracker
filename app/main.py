@@ -1,14 +1,14 @@
 from fastapi import FastAPI
 import uvicorn
-from app.routers import api
+from app.routers import api_v1
 
 
 app = FastAPI(
     title="My Expense tracker application",
-    version="0.1.0",
+    version="1.0",
 )
 
-app.include_router(api.router)
+app.include_router(api_v1.router)
 
 
 """
