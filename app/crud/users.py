@@ -3,7 +3,7 @@ from bcrypt import gensalt, hashpw
 
 from app.crud.base_crud import Crud
 from app.models import User as UserOrm
-from app.utils.app_utils import to_title_case
+from app.utils.app import to_title_case
 from app.schema.user import UserCreate
 from app.utils.error_utils import RaiseHttpException
 from app.utils import custom_exceptions as ce

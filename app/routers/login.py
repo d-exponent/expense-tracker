@@ -7,7 +7,7 @@ from app.utils import error_messages as em
 from app.schema.user import UserAuthSuccess, UserLoginEmailPassword
 from app.crud.users import UserCrud
 from app.utils.database import dbSession
-from app.utils import auth_utils as au
+from app.utils import auth as au
 
 
 router = APIRouter(prefix="/login")

@@ -38,3 +38,25 @@ def handle_records(records, table_name: str):
         )
 
     return records
+
+
+def handle_create_user_integrity_exception(error_message):
+    if "users_password_email_address_ck" in error_message:
+        RaiseHttpException.bad_request("Provide the email and password")
+
+    if "users_phone_number_email_address_key" in error_message:
+        RaiseHttpException.bad_request(
+            "The phone number and email address is already registered to a user"
+        )
+
+    if "users_email_address_key" in error_message:
+        RaiseHttpException.bad_request(
+            "The email address is already registered to a user"
+        )
+
+    if "users_phone_number_key" in error_message:
+        RaiseHttpException.bad_request(
+            "The phone number is already registered to a user"
+        )
+
+    RaiseHttpException.server_error()

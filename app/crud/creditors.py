@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from app.crud.base_crud import Crud
 from app.models import Creditor as CreditorOrm
 from app.schema.creditor import CreditorCreate
-from app.utils.app_utils import to_title_case
+from app.utils.app import to_title_case
 
 
 class CreditorCrud(Crud):

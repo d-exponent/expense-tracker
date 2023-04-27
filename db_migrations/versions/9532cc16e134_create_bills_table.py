@@ -15,12 +15,12 @@ revision = "9532cc16e134"
 down_revision = "7401a8161f64"
 branch_labels = None
 depends_on = None
-table = "bills"
+table_name = "bills"
 
 
 def upgrade() -> None:
     op.create_table(
-        table,
+        table_name,
         sa.Column("id", sa.Integer, primary_key=True),
         sa.Column(
             "user_id",
@@ -54,10 +54,10 @@ def upgrade() -> None:
     )
     op.create_unique_constraint(
         constraint_name="bills_user_id_creditor_id_key",
-        table_name=table,
+        table_name=table_name,
         columns=["user_id", "creditor_id"],
     )
 
 
 def downgrade() -> None:
-    op.drop_table(table)
+    op.drop_table(table_name)

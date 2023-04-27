@@ -18,15 +18,17 @@ down_revision = None
 branch_labels = None
 depends_on = None
 
+table_name = "users"
+
 
 def upgrade():
     op.create_table(
-        "users",
+        table_name,
         sa.Column("id", sa.Integer, primary_key=True),
         sa.Column("first_name", sa.String(length=40), nullable=False),
         sa.Column("middle_name", sa.String(40)),
         sa.Column("last_name", sa.String(length=40), nullable=False),
-        sa.Column("phone_number", sa.String(25), nullable=False),
+        sa.Column("phone_number", sa.String(25), nullable=False, unique=True),
         sa.Column("verified", sa.Boolean(), server_default=text("False")),
         sa.Column("mobile_otp", sa.String(6)),
         sa.Column("mobile_otp_expires_at", sa.DateTime(timezone=True)),
@@ -48,7 +50,7 @@ def upgrade():
     ),
     op.create_check_constraint(
         constraint_name="users_password_email_address_ck",
-        table_name="users",
+        table_name=table_name,
         condition="""
             (password IS NUll AND email_address IS NULL)
             OR
@@ -57,11 +59,11 @@ def upgrade():
     ),
     op.create_unique_constraint(
         constraint_name="users_phone_number_email_address_key",
-        table_name="users",
+        table_name=table_name,
         columns=["email_address", "phone_number"],
     ),
 
 
 def downgrade():
-    op.drop_table(table_name="users"),
+    op.drop_table(table_name=table_name),
     sa.Enum("user", "staff", "admin", name="users_role_enum").drop(op.get_bind())

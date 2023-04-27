@@ -15,12 +15,12 @@ revision = "7e1f6e90055c"
 down_revision = "9532cc16e134"
 branch_labels = None
 depends_on = None
-table = "payments"
+table_name = "payments"
 
 
 def upgrade() -> None:
     op.create_table(
-        table,
+        table_name,
         sa.Column("id", sa.Integer, primary_key=True),
         sa.Column(
             "bill_id",
@@ -40,5 +40,5 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_table(table),
+    op.drop_table(table_name),
     sa.Enum("user", "creditor", name="payments_issuer_enum").drop(op.get_bind())

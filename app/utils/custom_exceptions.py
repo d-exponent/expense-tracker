@@ -8,3 +8,8 @@ class UserNotFoundException(Exception):
 
 class UserIsInActiveException(Exception):
     pass
+
+
+class ImageTooSmallException(Exception):
+    pass
+

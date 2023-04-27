@@ -2,45 +2,28 @@ from typing import Annotated
 from sqlalchemy.exc import IntegrityError
 from fastapi import APIRouter, HTTPException, Path, Query, Body
 
-from app.dependencies import auth
 from app.crud.users import UserCrud
 from app.utils.database import dbSession
 from app.schema import user as u
-from app.schema.bill_payment import BillOut
 from app.schema.response import DefaultResponse
 from app.utils import error_utils as eu
+from app.dependencies import auth
 
 
-def handle_integrity_error(error_message):
-    if "users_password_email_ck" in error_message:
-        eu.RaiseHttpException.bad_request("Provide the email and password")
-
-    if "users_phone_email_key" in error_message:
-        eu.RaiseHttpException.bad_request("The user already exists")
-
-    eu.RaiseHttpException.server_error()
-
-
-router = APIRouter(
-    prefix="/users",
-    tags=["users"],
-    # dependencies=[auth.protect]
-)
+router = APIRouter(prefix="/users", tags=["users"], dependencies=[auth.protect])
 
 
 @router.post(
     "/",
     response_model=u.CreateUser,
     status_code=201,
-    dependencies=[auth.allow_user_admin],
+    dependencies=[auth.allow_only_admin],
 )
-def create_user(user: u.UserCreate, db: dbSession):
-    UserCrud.handle_user_if_exists(db, phone=user.phone_number)
-
+def create_user(db: dbSession, user: Annotated[u.UserCreate, Body()]):
     try:
         user = UserCrud.create(db, user)
-    except IntegrityError as error:
-        handle_integrity_error(str(error))
+    except IntegrityError as e:
+        eu.handle_create_user_integrity_exception(str(e))
     except Exception:
         eu.RaiseHttpException.server_error()
 

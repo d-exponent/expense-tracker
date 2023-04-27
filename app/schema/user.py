@@ -2,7 +2,7 @@ from pydantic import BaseModel, EmailStr, constr
 from datetime import datetime
 
 from app.schema.bill_payment import BillOut
-from app.utils.app_utils import remove_none_props_from_dict_recursive as rnd
+from app.utils.app import remove_none_props_from_dict_recursive as rnd
 from app.utils.error_utils import RaiseHttpException
 from app.schema.response import DefaultResponse
 
@@ -22,7 +22,7 @@ password_reg = (
 
 
 class UserPassword(BaseModel):
-    password: constr(regex=password_reg)
+    password: constr(regex=password_reg) = None
 
 
 class UserBase(BaseModel):

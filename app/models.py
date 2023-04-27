@@ -3,7 +3,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql.expression import text, func
 
 from app.database.sqlalchemy_config import Base
-from app.utils import auth_utils as au
+from app.utils import auth as au
 
 
 class User(Base):
