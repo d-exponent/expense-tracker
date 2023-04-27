@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 
 from app.utils.error_utils import RaiseHttpException
-from app.utils.app import remove_none_props_from_dict_recursive
+from app.utils.general import remove_none_props_from_dict_recursive
 
 
 class Crud:

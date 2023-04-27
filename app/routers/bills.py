@@ -5,6 +5,7 @@ from app.crud.bills import BillCrud
 from app.utils.database import dbSession
 from app.schema import bill_payment as bp
 from app.dependencies import auth
+from app.schema.response import DefaultResponse
 from app.utils.error_utils import RaiseHttpException, handle_records
 
 
@@ -15,15 +16,13 @@ class BillWithPayments(bp.BillOut):
 raise_server_error = RaiseHttpException.server_error
 raise_bad_request_error = RaiseHttpException.bad_request
 
-router = APIRouter(
-    prefix="/bills", tags=["bills"], dependencies=[auth.allow_only_user]
-)
+router = APIRouter(prefix="/bills", tags=["bills"], dependencies=[auth.allow_only_user])
 
 
-@router.post("/", response_model=bp.BillOut, status_code=201)
+@router.post("/", response_model=DefaultResponse, status_code=201)
 def make_bill(db: dbSession, bill_data: Annotated[bp.BillCreate, Body()]):
     try:
-        return BillCrud.create(db, bill=bill_data)
+        db_bill = BillCrud.create(db, bill=bill_data)
     except Exception as e:
         error = str(e)
         if 'is not present in table "creditors"' in error:
@@ -39,6 +38,8 @@ def make_bill(db: dbSession, bill_data: Annotated[bp.BillCreate, Body()]):
             raise_bad_request_error("This bill already exists")
 
         raise_server_error()
+    else:
+        return DefaultResponse(data=bp.BillOut.from_orm(db_bill))
 
 
 @router.get("/", response_model=list[bp.BillOut])

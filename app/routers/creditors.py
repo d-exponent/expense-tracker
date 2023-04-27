@@ -12,7 +12,7 @@ from app.utils import error_utils as er
 router = APIRouter(
     prefix="/creditors",
     tags=["creditors"],
-    dependencies=[auth.allow_only_user],
+    dependencies=[auth.allow_user_admin],
 )
 
 raise_bad_request = er.RaiseHttpException.bad_request

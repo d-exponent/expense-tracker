@@ -32,13 +32,12 @@ def update_me(db: dbSession, me: current_user, data: Annotated[u.UserUpdate, Bod
 
 
 @router.delete("/")
-def delete_user(db: dbSession, me: current_user):
-    not_exist_msg = "You don't exist in our records"
+def delete_me(db: dbSession, me: current_user):
 
     try:
         UserCrud.handle_delete_me(db=db, id=me.id)
     except UserNotFoundException:
-        RaiseHttpException.not_found(not_exist_msg)
+        RaiseHttpException.not_found("You don't exist in our records")
     except Exception:
         RaiseHttpException.server_error("Deleting profile failed. Please try again!")
     else:

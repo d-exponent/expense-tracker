@@ -6,7 +6,7 @@ Create Date: 2023-04-21 19:50:41.565910
 
 """
 
-from app.utils.db_migration import execute_raw_sql
+from app.utils.migrations import execute_raw_sql
 
 
 # revision identifiers, used by Alembic.

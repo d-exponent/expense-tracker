@@ -16,6 +16,13 @@ class UserErrorMessages(UserNotExist):
     no_users = "There are no users"
 
 
+class SignupErrorMessages:
+    server_error = "Error while signing up the user. Try again!"
+    otp_send_error = "Signup succesfull. Login with phone number to get one time password and complete your registration"
+    already_exists = "The user already exists"
+    provide_credentials = "Provide a valid email address and password"
+
+
 class GetMobileOtpErrorMessages(UserNotExist):
     otp_send_error = "Error while sending the one time password. Try again!"
     update_user_error = "Error processing this request. Try again!"

@@ -3,9 +3,8 @@ from bcrypt import gensalt, hashpw
 
 from app.crud.base_crud import Crud
 from app.models import User as UserOrm
-from app.utils.app import to_title_case
+from app.utils.general import to_title_case
 from app.schema.user import UserCreate
-from app.utils.error_utils import RaiseHttpException
 from app.utils import custom_exceptions as ce
 
 
@@ -65,11 +64,6 @@ class UserCrud(Crud):
         query.update(update_data)
         db.commit()
         return query.first()
-
-    @classmethod
-    def handle_user_if_exists(cls, db: Session, phone: str):
-        if cls.get_user_by_phone(db, phone) is not None:
-            RaiseHttpException.bad_request(msg="The user already exists")
 
     @classmethod
     def update_user_password(cls, db: Session, user_id: int, new_password: str):

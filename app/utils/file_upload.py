@@ -1,7 +1,8 @@
+import io
+import os
 import random
 import time
 from PIL import Image
-import io
 from string import ascii_uppercase
 from fastapi import UploadFile
 
@@ -22,23 +23,30 @@ def generate_random_image_name(file_extension: str = "png"):
     random_alphanumeric_str = "".join(random.choices(ascii_uppercase, k=7))
     utc_timestamp_str = str(time.time()).replace(".", "")
     random_str = "-".join([random_alphanumeric_str, utc_timestamp_str])
+
     return f"{random_str}.{file_extension}"
 
 
-def store_image_file(file: UploadFile, location: str):
+def store_image_file(file: UploadFile, location: tuple):
     """
-    Stores a file as an image in file system at specified location
+    Stores an image file in app/static/images/ directory
 
     Args:
-    file (UploadFile) : The file to stored in file system
-    location (str) : The path location to store the file
+    file (UploadFile) : The file to stored
+    location (str) : The dir in the /static/images/ directory to store the image
+        If the directory does not exist, it will be created
 
     Returns:
         str: The name of the saved image file
     """
 
+    workdir = os.path.abspath(os.getcwd())
+    save_img_path = os.path.join(workdir, "app", "static", "images", location)
+    if not os.path.exists(save_img_path):
+        os.makedirs(save_img_path)
+
     image_name = generate_random_image_name()
-    file_location = location + "/" + image_name
+    file_location = os.path.join(save_img_path, image_name)
     file_content = file.file.read()
 
     try:
@@ -49,7 +57,6 @@ def store_image_file(file: UploadFile, location: str):
         if dimension[0] < 180 and dimension[1] < 180:
             raise ImageTooSmallException
 
-        img.thumbnail((1000, 2000))
         img.save(file_location)
     except OSError:
         # Store the image without resizing

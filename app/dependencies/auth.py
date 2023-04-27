@@ -6,8 +6,6 @@ from app.schema.user import UserAllInfo
 from app.utils import auth as au
 from app.utils.database import dbSession
 
-not_logged_in_msg = "You are not logged in. Please Login"
-
 
 def get_token_from_auth_header(request: Request):
     bearer = request.headers.get("Authorization")
@@ -34,16 +32,16 @@ token_types = str | None
 
 
 def get_token(
-        cookie_token: Annotated[token_types, Depends(get_token_from_cookies)],
-        header_token: Annotated[token_types, Depends(get_token_from_auth_header)],
+    cookie_token: Annotated[token_types, Depends(get_token_from_cookies)],
+    header_token: Annotated[token_types, Depends(get_token_from_auth_header)],
 ):
     access_token = header_token if header_token else cookie_token
 
     if access_token is None:
-        au.raise_unauthorized(not_logged_in_msg)
+        au.raise_unauthorized(msg="You are not logged in. Please login")
 
     if not au.validate_token_anatomy(token=access_token):
-        au.raise_unauthorized(not_logged_in_msg)
+        au.raise_unauthorized("Invalid access token. Please Login")
 
     return access_token
 
@@ -52,7 +50,7 @@ def get_token_payload(token: Annotated[str, Depends(get_token)]):
     try:
         payload = au.decode_access_token(access_token=token)
     except Exception:
-        au.raise_unauthorized(not_logged_in_msg)
+        au.raise_unauthorized("Invalid access token. Please Login")
     else:
         return payload
 
@@ -63,12 +61,11 @@ protect = Depends(get_token_payload)
 def get_user(db: dbSession, payload: Annotated[dict, protect]) -> UserAllInfo:
     user = UserCrud.get_by_id(db, id=payload.get("id"))
 
-    invalid_user_msg = "Invalid Auth Credentials. Login for valid credentials"
     if user is None:
-        au.raise_unauthorized(invalid_user_msg)
+        au.raise_unauthorized(msg="Invalid user. Please login with valid credentials")
 
     if user.is_active is False:
-        au.raise_unauthorized(invalid_user_msg)
+        au.raise_unauthorized(msg="This user's profile has been deleted.")
 
     return user
 

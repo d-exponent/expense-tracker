@@ -46,17 +46,13 @@ def handle_create_user_integrity_exception(error_message):
 
     if "users_phone_number_email_address_key" in error_message:
         RaiseHttpException.bad_request(
-            "The phone number and email address is already registered to a user"
+            "The phone number and email address are already in use"
         )
 
     if "users_email_address_key" in error_message:
-        RaiseHttpException.bad_request(
-            "The email address is already registered to a user"
-        )
+        RaiseHttpException.bad_request("The email address is already in use")
 
     if "users_phone_number_key" in error_message:
-        RaiseHttpException.bad_request(
-            "The phone number is already registered to a user"
-        )
+        RaiseHttpException.bad_request("The phone number is already in use")
 
     RaiseHttpException.server_error()

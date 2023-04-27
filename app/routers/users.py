@@ -2,12 +2,12 @@ from typing import Annotated
 from sqlalchemy.exc import IntegrityError
 from fastapi import APIRouter, HTTPException, Path, Query, Body
 
+from app.dependencies import auth
 from app.crud.users import UserCrud
 from app.utils.database import dbSession
 from app.schema import user as u
 from app.schema.response import DefaultResponse
 from app.utils import error_utils as eu
-from app.dependencies import auth
 
 
 router = APIRouter(prefix="/users", tags=["users"], dependencies=[auth.protect])
@@ -19,7 +19,7 @@ router = APIRouter(prefix="/users", tags=["users"], dependencies=[auth.protect])
     status_code=201,
     dependencies=[auth.allow_only_admin],
 )
-def create_user(db: dbSession, user: Annotated[u.UserCreate, Body()]):
+def create_user(user: u.UserCreate, db: dbSession):
     try:
         user = UserCrud.create(db, user)
     except IntegrityError as e:

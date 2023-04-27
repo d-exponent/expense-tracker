@@ -19,5 +19,7 @@ def run():
 Alternatively, RUN uvicorn app.main:app from CLI to start server at port 8000
 For Debugging, RUN uvicorn app.main:app --reload from CLI
 """
+
+
 if __name__ == "__main__":
     run()

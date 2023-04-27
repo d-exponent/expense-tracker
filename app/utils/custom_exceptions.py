@@ -12,4 +12,3 @@ class UserIsInActiveException(Exception):
 
 class ImageTooSmallException(Exception):
     pass
-
