@@ -9,14 +9,12 @@ from app.utils import auth as au
 class User(Base):
     __tablename__ = "users"
     __table_args__ = (
-        sa.UniqueConstraint(
-            "phone_number", "email_address", name="users_phone_email_key"
-        ),
+        sa.UniqueConstraint("phone", "email", name="users_phone_email_key"),
         sa.CheckConstraint(  # Password and email must exist or not exist together
             """
-                (password IS NUll AND email_address IS NULL)
+                (password IS NUll AND email IS NULL)
                 OR
-                (password IS NOT NULL AND email_address IS NOT NULL)
+                (password IS NOT NULL AND email IS NOT NULL)
             """,
             name="users_password_email_ck",
         ),
@@ -26,8 +24,8 @@ class User(Base):
     first_name = sa.Column(sa.String(length=40), nullable=False)
     middle_name = sa.Column(sa.String(length=40))
     last_name = sa.Column(sa.String(length=40), nullable=False)
-    phone_number = sa.Column(sa.String(25), unique=True, nullable=False)
-    email_address = sa.Column(sa.String(30), unique=True)
+    phone = sa.Column(sa.String(25), unique=True, nullable=False)
+    email = sa.Column(sa.String(30), unique=True)
     verified = sa.Column(sa.Boolean(), server_default=text("False"))
     otp = sa.Column(sa.String)
     otp_expires_at = sa.Column(

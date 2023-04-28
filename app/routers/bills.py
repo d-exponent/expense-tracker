@@ -68,7 +68,7 @@ def get_bill(db: dbSession, bill_id: Annotated[int, Path()]):
         return bill
 
 
-@router.delete("/{bill_id}", status_code=204, dependencies=[auth.allow_only_user])
+@router.delete("/{bill_id}", status_code=204)
 def delete_bill(db: dbSession, bill_id: Annotated[int, Path()]):
     try:
         BillCrud.delete_by_id(db=db, id=bill_id)

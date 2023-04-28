@@ -52,3 +52,7 @@ class Crud:
 
         query.delete()
         db.commit()
+
+    @classmethod
+    def handle_delete_bill(cls, db: Session, bill_id: int, user_id: int):
+        bill = cls.get_by_id(db, id=bill_id)

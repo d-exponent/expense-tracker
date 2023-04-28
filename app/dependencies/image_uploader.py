@@ -16,7 +16,7 @@ def handle_user_image_upload(
     email: EmailStr = Form(default=None),
     phone: Annotated[str, Form(regex=e_164_fmt_regex)],
     password: str = Form(default=None, regex=password_reg),
-    role: Annotated[str, Form()]
+    role: Annotated[str, Form()],
 ):
     image_name = None
     if profile_image:
@@ -36,8 +36,8 @@ def handle_user_image_upload(
         first_name=first_name,
         last_name=last_name,
         middle_name=middle_name,
-        phone_number=phone,
-        email_address=email,
+        phone=phone,
+        email=email,
         password=password,
         image_url=image_name,
         role=role,

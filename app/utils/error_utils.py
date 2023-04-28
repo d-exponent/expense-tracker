@@ -41,18 +41,18 @@ def handle_records(records, table_name: str):
 
 
 def handle_create_user_integrity_exception(error_message):
-    if "users_password_email_address_ck" in error_message:
+    if "users_password_email_ck" in error_message:
         RaiseHttpException.bad_request("Provide the email and password")
 
-    if "users_phone_number_email_address_key" in error_message:
+    if "users_phone_email_key" in error_message:
         RaiseHttpException.bad_request(
             "The phone number and email address are already in use"
         )
 
-    if "users_email_address_key" in error_message:
+    if "users_email_key" in error_message:
         RaiseHttpException.bad_request("The email address is already in use")
 
-    if "users_phone_number_key" in error_message:
+    if "users_phone_key" in error_message:
         RaiseHttpException.bad_request("The phone number is already in use")
 
     RaiseHttpException.server_error()

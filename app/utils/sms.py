@@ -20,6 +20,8 @@ login_sms = "Your login code is <otp>\nExpires in 2 minutes"
 
 
 class SMSMessenger:
+    """Handles Sending SMS"""
+
     def __init__(
         self,
         user: UserOrm,
@@ -59,3 +61,9 @@ class SMSMessenger:
             name=self.__receiver_name, msg=signup_sms.replace("<otp>", otp)
         )
         await self.send(msg)
+
+
+m = {
+    "receiver_name": "Twillo",
+    "age": 28,
+}

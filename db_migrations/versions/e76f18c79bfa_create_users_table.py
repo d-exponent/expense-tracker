@@ -26,11 +26,11 @@ def upgrade():
         sa.Column("first_name", sa.String(length=40), nullable=False),
         sa.Column("middle_name", sa.String(40)),
         sa.Column("last_name", sa.String(length=40), nullable=False),
-        sa.Column("phone_number", sa.String(25), nullable=False),
+        sa.Column("phone", sa.String(25), nullable=False),
         sa.Column("verified", sa.Boolean(), server_default=text("False")),
         sa.Column("mobile_otp", sa.String(6)),
         sa.Column("mobile_otp_expires_at", sa.DateTime(timezone=True)),
-        sa.Column("email_address", sa.String(30), unique=True),
+        sa.Column("email", sa.String(30), unique=True),
         sa.Column("password", sa.LargeBinary),
         sa.Column("image_url", sa.String),
         sa.Column("is_active", sa.Boolean, server_default=text("True")),
@@ -47,18 +47,18 @@ def upgrade():
         sa.Column("password_reset_token_expires_at", sa.DateTime(timezone=True)),
     ),
     op.create_check_constraint(
-        constraint_name="users_password_email_address_ck",
+        constraint_name="users_password_email_ck",
         table_name="users",
         condition="""
-            (password IS NUll AND email_address IS NULL)
+            (password IS NUll AND email IS NULL)
             OR
-            (password IS NOT NULL AND email_address IS NOT NULL)
+            (password IS NOT NULL AND email IS NOT NULL)
         """,
     ),
     op.create_unique_constraint(
-        constraint_name="users_phone_number_email_address_key",
+        constraint_name="users_phone_email_key",
         table_name="users",
-        columns=["email_address", "phone_number"],
+        columns=["email", "phone"],
     ),
 
 

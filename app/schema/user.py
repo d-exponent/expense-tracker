@@ -29,8 +29,8 @@ class UserBase(BaseModel):
     first_name: constr(max_length=40, strip_whitespace=True)
     middle_name: constr(max_length=40, strip_whitespace=True) = None
     last_name: constr(max_length=40, strip_whitespace=True)
-    phone_number: constr(max_length=25, regex=e_164_fmt_regex, strip_whitespace=True)
-    email_address: EmailStr | None
+    phone: constr(max_length=25, regex=e_164_fmt_regex, strip_whitespace=True)
+    email: EmailStr | None
     image_url: constr(strip_whitespace=True) = None
     role: str
 
@@ -40,10 +40,8 @@ class UserUpdate(BaseModel):
     middle_name: constr(max_length=40, strip_whitespace=True) = None
     last_name: constr(max_length=40, strip_whitespace=True) = None
     image_url: constr(strip_whitespace=True) = None
-    email_address: EmailStr | None
-    phone_number: constr(
-        max_length=25, regex=e_164_fmt_regex, strip_whitespace=True
-    ) = None
+    email: EmailStr | None
+    phone: constr(max_length=25, regex=e_164_fmt_regex, strip_whitespace=True) = None
     password: str = None
 
     def validate_data(self):
@@ -52,12 +50,12 @@ class UserUpdate(BaseModel):
         Ensures Email addres and phone number won't be updated
         """
 
-        if self.email_address:
+        if self.email:
             RaiseHttpException.bad_request(
                 "Email address cannot be updated via this route"
             )
 
-        if self.phone_number:
+        if self.phone:
             RaiseHttpException.bad_request(
                 "Phone number cannot be updated via this route"
             )
@@ -79,7 +77,7 @@ class UserCreate(UserBase, UserPassword):
 
 
 class UserLoginEmailPassword(UserPassword):
-    email_address: EmailStr
+    email: EmailStr
 
 
 class UserUpdatePassword(UserPassword):
@@ -88,7 +86,7 @@ class UserUpdatePassword(UserPassword):
 
 
 class UserLoginPhoneNumber(BaseModel):
-    phone_number: constr(max_length=25, regex=e_164_fmt_regex, strip_whitespace=True)
+    phone: constr(max_length=25, regex=e_164_fmt_regex, strip_whitespace=True)
 
 
 class UserLoginId(BaseModel):

@@ -25,8 +25,8 @@ class UserCrud(Crud):
         if user.password:
             user.password = cls.__hash_password(user.password)
 
-        if user.email_address:
-            user.email_address = user.email_address.lower()
+        if user.email:
+            user.email = user.email.lower()
 
         return user
 
@@ -38,7 +38,7 @@ class UserCrud(Crud):
 
     @classmethod
     def __get_user_by_phone_query(cls, db: Session, phone: str):
-        return db.query(cls.orm_model).filter(cls.orm_model.phone_number == phone)
+        return db.query(cls.orm_model).filter(cls.orm_model.phone == phone)
 
     @classmethod
     def get_user_by_phone(cls, db: Session, phone: str) -> UserOrm:
@@ -47,9 +47,7 @@ class UserCrud(Crud):
     @classmethod
     def get_user_by_email(cls, db: Session, email: str) -> UserOrm:
         return (
-            db.query(cls.orm_model)
-            .filter(cls.orm_model.email_address == email.lower())
-            .first()
+            db.query(cls.orm_model).filter(cls.orm_model.email == email.lower()).first()
         )
 
     @classmethod

@@ -19,10 +19,7 @@ from app.utils.sms import SMSMessenger
 from app.utils.send_email import EmailMessenger
 from app.utils.database import dbSession
 from app.utils.general import AddTime
-from app.utils.error_utils import (
-    RaiseHttpException,
-    handle_create_user_integrity_exception,
-)
+from app.utils import error_utils as eu
 from app.utils.error_messages import SignupErrorMessages
 from app.utils import error_messages as em
 
@@ -35,15 +32,15 @@ invalidCred = em.InvalidCredentials
 
 def handle_integrity_error(error_message):
     if "already exists" in error_message:
-        RaiseHttpException.bad_request(SignupErrorMessages.already_exists)
+        eu.RaiseHttpException.bad_request(SignupErrorMessages.already_exists)
 
     if "users_password_email_ck" in error_message:
-        RaiseHttpException.bad_request(SignupErrorMessages.provide_credentials)
+        eu.RaiseHttpException.bad_request(SignupErrorMessages.provide_credentials)
 
     if "users_phone_email_key" in error_message:
-        RaiseHttpException.bad_request(SignupErrorMessages.already_exists)
+        eu.RaiseHttpException.bad_request(SignupErrorMessages.already_exists)
 
-    RaiseHttpException.server_error(SignupErrorMessages.server_error)
+    eu.RaiseHttpException.server_error(SignupErrorMessages.server_error)
 
 
 # Implementing temporary response message getter. Will be removed before production
@@ -89,9 +86,9 @@ async def sign_up(
     try:
         db_user = UserCrud.create(db=db, user=u.UserSignUp(**user_data))
     except IntegrityError as e:
-        handle_create_user_integrity_exception(str(e))
+        eu.handle_create_user_integrity_exception(str(e))
     except Exception:
-        RaiseHttpException.server_error(em.SignupErrorMessages.server_error)
+        eu.RaiseHttpException.server_error(em.SignupErrorMessages.server_error)
 
     """
     The below implementation will be enabled when twillo account is setup
@@ -105,7 +102,7 @@ async def sign_up(
     #     )
 
     # except Exception:
-    #     RaiseHttpException.server_error(em.SignupErrorMessages.otp_send_error)
+    #     eu.RaiseHttpException.server_error(em.SignupErrorMessages.otp_send_error)
     # else:
     #     res_msg = "Your account has been successfully created."
     #     res_msg = f"{res_msg} otp was sent to your phone number and email address."
@@ -116,7 +113,7 @@ async def sign_up(
     # })
 
     # ALTERNATIATE TEMPORARY RESPONSE IMPLEMENTATION
-    # Will be removed in production
+    # Will be removed in production as soon as twillo is set back up
     email_success = None
     sms_success = None
 
@@ -145,10 +142,10 @@ async def get_otp(
     db: dbSession, phone: str = Query(default=None), email: str = Query(default=None)
 ):
     if not any([phone, email]):
-        RaiseHttpException.bad_request("Provide either a phone or email via query")
+        eu.RaiseHttpException.bad_request("Provide either a phone or email via query")
 
     if all([phone, email]):
-        RaiseHttpException.bad_request("Provide either a phone or email via query")
+        eu.RaiseHttpException.bad_request("Provide either a phone or email via query")
 
     if phone:
         db_user = UserCrud.get_user_by_phone(db, phone=f"+{phone.strip()}")
@@ -156,13 +153,13 @@ async def get_otp(
         db_user = UserCrud.get_user_by_email(db, email)
 
     if db_user is None:
-        RaiseHttpException.not_found("The user does not exist in our records")
+        eu.RaiseHttpException.not_found("The user does not exist in our records")
 
     otp_data = au.config_users_otp_columns(au.generate_otp(5), AddTime.add_minutes(3))
     try:
         UserCrud.update_user_by_phone(db, db_user.phone_number, otp_data)
     except Exception:
-        RaiseHttpException.server_error()
+        eu.RaiseHttpException.server_error()
 
     otp = otp_data.get("otp")
 
@@ -171,13 +168,15 @@ async def get_otp(
             sms_handler = SMSMessenger(db_user, Client)
             await create_task(sms_handler.send_otp(otp))
         except Exception:
-            RaiseHttpException.server_error(em.GetMobileOtpErrorMessages.otp_send_error)
+            eu.RaiseHttpException.server_error(
+                em.GetMobileOtpErrorMessages.otp_send_error
+            )
     else:
         try:
             email_handler = EmailMessenger(db_user, EmailMessage)
             await create_task(email_handler.send_login(otp))
         except Exception:
-            RaiseHttpException.server_error("Error sending Otp to email address")
+            eu.RaiseHttpException.server_error("Error sending Otp to email address")
 
     email = db_user.email_address
     return DefaultResponse(
@@ -192,7 +191,7 @@ def update_password(
     db_user: Annotated[UserOrm, Depends(get_user)],
 ):
     if credentials.new_password != credentials.new_password_confirm:
-        RaiseHttpException.bad_request("The passwords do not match")
+        eu.RaiseHttpException.bad_request("The passwords do not match")
 
     # Ensure the password is correct
     if not db_user.compare_password(password=credentials.password):
