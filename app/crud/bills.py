@@ -4,6 +4,7 @@ from app.crud.base_crud import Crud
 from app.models import Bill as BillOrm
 from app.schema import bill_payment as bp
 from app.utils.custom_exceptions import CreatePaymentException
+from app.utils.error_utils import RaiseHttpException
 
 
 def add_payment_amount(payment_amount: float, bill_amount) -> float:
@@ -41,3 +42,14 @@ class BillCrud(Crud):
             )
 
         query.update(to_update)
+
+    @classmethod
+    def delete_bill(cls, db: Session, user_id: int, bill_id: int):
+        bill = cls.get_by_id(db, id=bill_id)
+        if bill is None:
+            RaiseHttpException.bad_request("Theres no bill with this ID")
+
+        if bill.user_id != user_id:
+            RaiseHttpException.unauthorized("This pill doesn't belong to this user")
+
+        

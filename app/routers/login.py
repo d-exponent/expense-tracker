@@ -20,7 +20,7 @@ def login_with_email_password(
     user_data: Annotated[UserLoginEmailPassword, Body()],
     response: Response,
 ):
-    user = UserCrud.get_user_by_email(db, user_data.email_address)
+    user = UserCrud.get_user_by_email(db, user_data.email)
     if user is None:
         au.raise_unauthorized(invalidCred.email_password_required)
 

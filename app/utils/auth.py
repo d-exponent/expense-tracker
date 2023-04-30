@@ -122,7 +122,7 @@ def authenticate_password(plain_password: str, hashed_password: bytes) -> bool:
     Else returns False
     """
 
-    password_bytes = plain_password.encode(config("ENCODE_FMT"))
+    password_bytes = plain_password.encode("utf-8")
     return checkpw(password_bytes, hashed_password)
 
 

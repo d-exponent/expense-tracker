@@ -9,7 +9,6 @@ class BillCreate(BaseModel):
     total_paid_amount: float = 0.00
 
 
-
 class BillOut(BillCreate):
     id: int
     paid: bool

@@ -1,8 +1,6 @@
 from typing import Annotated
 from sqlalchemy.exc import IntegrityError
-from fastapi import APIRouter, Response, Body, Depends, Query
-from twilio.rest import Client
-from email.message import EmailMessage
+from fastapi import APIRouter, Response, Body, Depends, Query, Response
 from asyncio import create_task
 
 
@@ -18,7 +16,7 @@ from app.utils import auth as au
 from app.utils.sms import SMSMessenger
 from app.utils.send_email import EmailMessenger
 from app.utils.database import dbSession
-from app.utils.general import AddTime
+from app.utils.general import AddTime, get_user_full_name
 from app.utils import error_utils as eu
 from app.utils.error_messages import SignupErrorMessages
 from app.utils import error_messages as em
@@ -72,9 +70,11 @@ def get_response_msg(**kwargs) -> str:
     return response_msg
 
 
-@router.post("/signup", status_code=201, response_model=u.CreateUser)
+@router.post("/signup", status_code=201)
 async def sign_up(
-    db: dbSession, user: Annotated[u.UserCreate, Depends(handle_user_image_upload)]
+    db: dbSession,
+    user: Annotated[u.UserCreate, Depends(handle_user_image_upload)],
+    response: Response,
 ):
     user_data = user.dict().copy()
     user_otp = au.generate_otp(5)
@@ -90,50 +90,36 @@ async def sign_up(
     except Exception:
         eu.RaiseHttpException.server_error(em.SignupErrorMessages.server_error)
 
-    """
-    The below implementation will be enabled when twillo account is setup
-    For now it will be commented out as it will raise an exception
-    """
-    # try:
-    #     # Send signup messages with otp to the new user
-    #     await gather(
-    #         EmailMessenger(db_user, EmailMessage).send_signup_email(user_otp),
-    #         SMSMessenger(db_user, Client).send_signup_msg(user_otp),
-    #     )
-
-    # except Exception:
-    #     eu.RaiseHttpException.server_error(em.SignupErrorMessages.otp_send_error)
-    # else:
-    #     res_msg = "Your account has been successfully created."
-    #     res_msg = f"{res_msg} otp was sent to your phone number and email address."
-
-    # return u.CreateUser(**{
-    #     "message": res_msg,
-    #     "data": u.UserOut.from_orm(db_user),
-    # })
-
-    # ALTERNATIATE TEMPORARY RESPONSE IMPLEMENTATION
+    # TEMPORARY RESPONSE IMPLEMENTATION
     # Will be removed in production as soon as twillo is set back up
+    # Email messagin and sms messging will be implemented with asyncio.gather
     email_success = None
     sms_success = None
+    user_full_name = get_user_full_name(db_user)
 
     try:
-        emailer = EmailMessenger(db_user, EmailMessage)
-        await create_task(emailer.send_welcome(user_otp))
+        await EmailMessenger(
+            receiver_name=user_full_name, receiver_email=db_user.email
+        ).send_welcome(user_otp)
         email_success = True
     except Exception:
         pass
 
     try:
-        sms_messenger = SMSMessenger(db_user, Client)
-        await create_task(sms_messenger.send_welcome(user_otp))
+        sms_messenger = SMSMessenger(
+            receiver_name=user_full_name, receiver_phone=db_user.phone
+        )
+        await sms_messenger.send_welcome(user_otp)
         sms_success = True
     except Exception:
         pass
 
-    return u.CreateUser(
+    access_token = au.handle_create_token_for_user(user_data=db_user)
+    au.set_cookie_header_response(response=response, token=access_token)
+    return au.get_auth_success_response(
+        token=access_token,
+        user_orm_data=db_user,
         message=get_response_msg(sms_sent=sms_success, email_sent=email_success),
-        data=u.UserOut.from_orm(db_user),
     )
 
 
@@ -162,10 +148,13 @@ async def get_otp(
         eu.RaiseHttpException.server_error()
 
     otp = otp_data.get("otp")
+    user_full_name = get_user_full_name(db_user)
 
     if phone:
         try:
-            sms_handler = SMSMessenger(db_user, Client)
+            sms_handler = SMSMessenger(
+                receiver_name=user_full_name, receiver_phone=db_user.phone
+            )
             await create_task(sms_handler.send_otp(otp))
         except Exception:
             eu.RaiseHttpException.server_error(
@@ -173,8 +162,10 @@ async def get_otp(
             )
     else:
         try:
-            email_handler = EmailMessenger(db_user, EmailMessage)
-            await create_task(email_handler.send_login(otp))
+            email_handler = EmailMessenger(
+                receiver_email=db_user.email, receiver_name=user_full_name
+            )
+            await email_handler.send_login(otp)
         except Exception:
             eu.RaiseHttpException.server_error("Error sending Otp to email address")
 

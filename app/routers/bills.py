@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Body, Query, Path
+from fastapi import APIRouter, Body, Query, Path, Depends
 from typing import Annotated
 
 from app.crud.bills import BillCrud
@@ -69,7 +69,11 @@ def get_bill(db: dbSession, bill_id: Annotated[int, Path()]):
 
 
 @router.delete("/{bill_id}", status_code=204)
-def delete_bill(db: dbSession, bill_id: Annotated[int, Path()]):
+def delete_bill(
+    db: dbSession, bill_id: Annotated[int, Path()], user: int = Depends(auth.get_user)
+):
+    
+    # Check the user created the bill
     try:
         BillCrud.delete_by_id(db=db, id=bill_id)
     except Exception:

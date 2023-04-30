@@ -76,3 +76,11 @@ class AddTime:
     @classmethod
     def add_months(cls, months: int):
         return cls.utc_date_now + timedelta(months=months)
+
+
+def get_user_full_name(user):
+    assert (
+        user.first_name and user.last_name
+    ), "The user must have a first_name and a last_name"
+
+    return f"{user.first_name} {user.last_name}"
