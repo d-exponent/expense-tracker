@@ -2,21 +2,21 @@ from fastapi import UploadFile, File, Form
 from typing import Annotated
 from pydantic import EmailStr
 
-from app.schema.user import UserCreate, password_reg, e_164_fmt_regex
+from app.schema.user import UserCreate, password_reg, e_164_phone_regex
 from app.utils.file_upload import store_image_file, ImageTooSmallException
 from app.utils.error_utils import RaiseHttpException
+from app.utils.general import to_title_case
 
 
-def handle_user_image_upload(
+def handle_user_multipart_data_create(
     *,
     profile_image: UploadFile = File(default=None),
     first_name: Annotated[str, Form()],
     middle_name: str = Form(default=None),
     last_name: Annotated[str, Form()],
     email: EmailStr = Form(default=None),
-    phone: Annotated[str, Form(regex=e_164_fmt_regex)],
+    phone: Annotated[str, Form(regex=e_164_phone_regex)],
     password: str = Form(default=None, regex=password_reg),
-    role: Annotated[str, Form()],
 ):
     image_name = None
     if profile_image:
@@ -33,12 +33,12 @@ def handle_user_image_upload(
             )
 
     return UserCreate(
-        first_name=first_name,
-        last_name=last_name,
-        middle_name=middle_name,
+        first_name=to_title_case(first_name),
+        last_name=to_title_case(last_name),
+        middle_name=to_title_case(middle_name) if middle_name else None,
         phone=phone,
-        email=email,
+        email=email.lower() if email else None,
         password=password,
         image_url=image_name,
-        role=role,
+        role="user",
     )

@@ -26,12 +26,17 @@ class RaiseHttpException:
     def unauthorized_with_headers(
         cls,
         msg: str = "Unauthorized",
-        headers: dict = {"WWW-Authenticate": "Bearer"},
+        headers=None,
     ):
+        if headers is None:
+            headers = {"WWW-Authenticate": "Bearer"}
         raise HTTPException(status_code=401, detail=msg, headers=headers)
 
 
-def handle_records(records, table_name: str):
+def handle_records(*, records=None, table_name: str):
+    if records is None:
+        records = []
+
     if len(records) == 0:
         raise HTTPException(
             status_code=404, detail=f"There are no {table_name} at this time."
@@ -40,7 +45,7 @@ def handle_records(records, table_name: str):
     return records
 
 
-def handle_create_user_integrity_exception(error_message):
+def handle_users_integrity_exceptions(error_message: str):
     if "users_password_email_ck" in error_message:
         RaiseHttpException.bad_request("Provide the email and password")
 

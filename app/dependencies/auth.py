@@ -7,7 +7,6 @@ from app.utils import auth as au
 from app.utils.database import dbSession
 from app.utils.error_utils import RaiseHttpException
 
-
 token_types = str | None
 
 
@@ -54,8 +53,8 @@ def get_token_from_cookies(request: Request) -> str | None:
 
 
 def get_token(
-    cookie_token: Annotated[token_types, Depends(get_token_from_cookies)],
-    header_token: Annotated[token_types, Depends(get_token_from_auth_header)],
+        cookie_token: Annotated[token_types, Depends(get_token_from_cookies)],
+        header_token: Annotated[token_types, Depends(get_token_from_auth_header)],
 ) -> str:
     """Retrives the access token from authorization header or cookie
 
@@ -74,7 +73,6 @@ def get_token(
         RaiseHttpException.unauthorized_with_headers(
             "Invalid access token. Please Login"
         )
-
     return access_token
 
 
@@ -87,16 +85,8 @@ def get_token_payload(token: Annotated[str, Depends(get_token)]):
 
     Returns:
         payload (dict): token payload
-        raise HttpException for invalid access token
     """
-    try:
-        payload = au.decode_access_token(access_token=token)
-    except Exception:
-        RaiseHttpException.unauthorized_with_headers(
-            "Invalid access token. Please Login"
-        )
-    else:
-        return payload
+    return au.handle_decode_access_token(access_token=token)
 
 
 protect = Depends(get_token_payload)
@@ -117,29 +107,33 @@ def get_user(db: dbSession, payload: Annotated[dict, protect]) -> User:
 
     if user is None:
         RaiseHttpException.unauthorized_with_headers(
-            msg="Invalid user. Please login with valid credentials"
-        )
-
-    if user.is_active is False:
-        RaiseHttpException.unauthorized_with_headers(
-            msg="This user's profile has been deleted."
+            msg="Please login with valid credentials"
         )
 
     return user
 
 
+def get_active_user(user: Annotated[User, Depends(get_user)]):
+    """
+    Returns an active user
+    raise HttpException if user is Invalid
+    """
+    if user.is_active is False:
+        RaiseHttpException.bad_request("This user's profile has been deleted")
+
+    return user
+
+
 def restrict_to(*args):
-    """Restircts users by roles
-
-    Args:
+    """Restricts users by roles\n
+    Params:
         *args (iterable): An iterable of permitted roles
-
     Returns:
         user (User) : The permitted user's data from database
     """
     # Check that all args are strings
-    are_atrings = all(isinstance(i, str) for i in args)
-    assert are_atrings, "All arguments must be strings"
+    are_strings = all(isinstance(i, str) for i in args)
+    assert are_strings, "All arguments must be strings"
 
     # Check that all args are in valid_roles list
     valid_roles = ["user", "staff", "admin"]

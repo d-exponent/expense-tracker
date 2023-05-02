@@ -4,6 +4,7 @@ from datetime import datetime
 from app.schema.bill_payment import BillOut
 from app.utils.general import remove_none_props_from_dict_recursive as rnd
 from app.utils.error_utils import RaiseHttpException
+from app.utils.custom_exceptions import DataError
 from app.schema.response import DefaultResponse
 
 
@@ -15,7 +16,7 @@ USER PASSWORD REGEX REQUIREMENTS
 4. Must be at least eight(8) characters long
 
 """
-e_164_fmt_regex = "^\\+[1-9]\\d{1,14}$"
+e_164_phone_regex = "^\\+[1-9]\\d{1,14}$"
 password_reg = (
     "^(?=(.*[A-Z]){1,})(?=(.*[0-9]){1,})(?=(.*[!@#$%^&*()\\-__+.]){1,}).{8,}$"
 )
@@ -29,19 +30,36 @@ class UserBase(BaseModel):
     first_name: constr(max_length=40, strip_whitespace=True)
     middle_name: constr(max_length=40, strip_whitespace=True) = None
     last_name: constr(max_length=40, strip_whitespace=True)
-    phone: constr(max_length=25, regex=e_164_fmt_regex, strip_whitespace=True)
+    phone: constr(max_length=25, regex=e_164_phone_regex, strip_whitespace=True)
     email: EmailStr | None
     image_url: constr(strip_whitespace=True) = None
     role: str
 
 
-class UserUpdate(BaseModel):
+class UpdateMe(BaseModel):
     first_name: constr(max_length=40, strip_whitespace=True) = None
     middle_name: constr(max_length=40, strip_whitespace=True) = None
     last_name: constr(max_length=40, strip_whitespace=True) = None
-    image_url: constr(strip_whitespace=True) = None
+
+    def ensure_at_least_one_field(self):
+        filtered = rnd(self.__dict__)
+        if len(filtered.items()) == 0:
+            raise DataError("Provide at least one value to be updated")
+        return filtered
+
+
+class UpdateEmail:
     email: EmailStr | None
-    phone: constr(max_length=25, regex=e_164_fmt_regex, strip_whitespace=True) = None
+    password: str = None
+
+
+class UpdatePhone(BaseModel):
+    phone: constr(max_length=25, regex=e_164_phone_regex, strip_whitespace=True) = None
+
+
+class UserUpdate(UpdateMe):
+    email: EmailStr | None
+    phone: constr(max_length=25, regex=e_164_phone_regex, strip_whitespace=True) = None
     password: str = None
 
     def validate_data(self):
@@ -63,13 +81,7 @@ class UserUpdate(BaseModel):
         if self.password:
             RaiseHttpException.bad_request("Password cannot be updated via this route")
 
-        # CHECK THAT THERE IS AT LEAST ONE VALUE TO BE UPDATED
-        filtered = rnd(self.__dict__)
-
-        if len(filtered.items()) == 0:
-            RaiseHttpException.bad_request("Provide at least one value to update")
-
-        return filtered
+        return self.ensure_at_least_one_field()
 
 
 class UserCreate(UserBase, UserPassword):
@@ -86,7 +98,7 @@ class UserUpdatePassword(UserPassword):
 
 
 class UserLoginPhoneNumber(BaseModel):
-    phone: constr(max_length=25, regex=e_164_fmt_regex, strip_whitespace=True)
+    phone: constr(max_length=25, regex=e_164_phone_regex, strip_whitespace=True)
 
 
 class UserLoginId(BaseModel):
@@ -135,9 +147,7 @@ class UserAllInfo(UserOut):
         orm_mode = True
 
 
-# RESPONSE TYPES
-
-
+# RESPONSE
 class GetUsers(DefaultResponse):
     data: list[UserOut]
 
@@ -147,4 +157,5 @@ class GetUser(DefaultResponse):
 
 
 class CreateUser(GetUser):
+    message = "The user was created successfully"
     data: UserOut

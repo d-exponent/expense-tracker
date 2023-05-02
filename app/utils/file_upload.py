@@ -27,7 +27,7 @@ def generate_random_image_name(file_extension: str = "png"):
     return f"{random_str}.{file_extension}"
 
 
-def store_image_file(file: UploadFile, location: tuple):
+def store_image_file(file: UploadFile, location: str):
     """
     Stores an image file in app/static/images/ directory
 

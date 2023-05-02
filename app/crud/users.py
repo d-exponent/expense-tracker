@@ -27,7 +27,6 @@ class UserCrud(Crud):
 
         if user.email:
             user.email = user.email.lower()
-
         return user
 
     @classmethod
@@ -38,7 +37,8 @@ class UserCrud(Crud):
 
     @classmethod
     def __get_user_by_phone_query(cls, db: Session, phone: str):
-        return db.query(cls.orm_model).filter(cls.orm_model.phone == phone)
+        model = cls.orm_model
+        return db.query(model).filter(model.phone == phone)
 
     @classmethod
     def get_user_by_phone(cls, db: Session, phone: str) -> UserOrm:
@@ -46,18 +46,17 @@ class UserCrud(Crud):
 
     @classmethod
     def get_user_by_email(cls, db: Session, email: str) -> UserOrm:
-        return (
-            db.query(cls.orm_model).filter(cls.orm_model.email == email.lower()).first()
-        )
+        model = cls.orm_model
+        user_email = email.lower()
+        return db.query(model).filter(model.email == user_email).first()
 
     @classmethod
     def get_user_by_otp(cls, db: Session, otp: str) -> UserOrm:
-        return db.query(cls.orm_model).filter(cls.orm_model.otp == otp).first()
+        model = cls.orm_model
+        return db.query(model).filter(model.otp == otp).first()
 
     @classmethod
-    def update_user_by_phone(
-        cls, db: Session, phone: str, update_data: dict
-    ) -> UserOrm:
+    def update_user_by_phone(cls, db: Session, phone: str, update_data: dict):
         query = cls.__get_user_by_phone_query(db, phone)
         query.update(update_data)
         db.commit()
@@ -72,7 +71,6 @@ class UserCrud(Crud):
     @classmethod
     def handle_delete_me(cls, db: Session, id: int):
         query = cls.get_by_id_query(db=db, id=id)
-
         if query.first() is None:
             raise ce.UserNotFoundException
 

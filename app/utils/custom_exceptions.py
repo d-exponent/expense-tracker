@@ -12,3 +12,15 @@ class UserIsInActiveException(Exception):
 
 class ImageTooSmallException(Exception):
     pass
+
+
+class DataError(Exception):
+    pass
+
+
+class SendSmsError(Exception):
+    pass
+
+
+class SendEmailError(Exception):
+    pass

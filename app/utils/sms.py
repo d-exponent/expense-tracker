@@ -3,6 +3,7 @@ from asyncio import to_thread
 from dataclasses import dataclass
 
 from app.settings import settings
+from app.utils.custom_exceptions import SendSmsError
 
 
 def get_twillo_client(
@@ -38,7 +39,10 @@ class SMSMessenger:
         )
 
     async def send(self, msg: str):
-        return await to_thread(self.__engine, msg)
+        try:
+            await to_thread(self.__engine, msg)
+        except Exception as e:
+            raise SendSmsError(str(e))
 
     async def send_otp(self, otp: str):
         msg = add_header_greeting(
