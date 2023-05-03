@@ -10,13 +10,10 @@ from app.schema.user import UserAuthSuccess, UserOut
 from app.utils.database import Session
 from app.settings import settings
 
-raise_unauthorized = RaiseHttpException.unauthorized_with_headers
-raise_bad_request = RaiseHttpException.bad_request
-
 
 def get_timestamp_secs(date: datetime) -> int:
     """
-    Returns the timestamp of a given date as an integer
+    Returns the timestamp of a datetime objectw2 as an integer
     """
     return int(date.timestamp())
 
@@ -36,8 +33,8 @@ LOGOUT_COOKIE_EXPIRES = get_timestamp_secs(CURRENT_UTC_TIME + timedelta(seconds=
 
 
 def set_otp_columns_data(
-        otp: str = None, otp_expires: datetime = None, verified: bool = False
-) -> dict:
+    otp: str = None, otp_expires: datetime = None, verified: bool = False
+):
     """
     Returns a dictionary for updating the db user's otp columns
     """
@@ -52,8 +49,7 @@ def set_otp_columns_data(
 
 def generate_otp(num_of_digits: int = 4):
     """
-    Returns a random sequence of positive integers\n
-    The length of the sequence defaults to 4
+    Returns a random sequence of positive integers as strings
     """
     otp_digits = [str(randint(0, 9)) for _ in range(0, num_of_digits)]
     return "".join(otp_digits)
@@ -70,8 +66,7 @@ def create_access_token(data: dict) -> str:
 
 def validate_token_anatomy(token: str) -> bool:
     """
-    Returns True if the token matches the jwt token anatomy\n
-    Else returns False
+    Ensures a token is of the proper structure
     """
     jwt_token_regex = "^[A-Za-z0-9_-]{2,}(?:\\.[A-Za-z0-9_-]{2,}){2}$"
     return bool(re.fullmatch(jwt_token_regex, token))
@@ -79,11 +74,12 @@ def validate_token_anatomy(token: str) -> bool:
 
 def handle_create_token_for_user(user_data: UserOut) -> str:
     """
-    Accepts a user object and handles creating a new token for that user
+    Ceates token for a user
     """
+
     if not user_data.id:
-        raise_unauthorized(msg="invalid user credentails")
-    return create_access_token({"id": user_data.id})
+        RaiseHttpException.unauthorized_with_headers(msg="invalid user credentials")
+    return create_access_token({"my_id": user_data.id})
 
 
 def handle_decode_access_token(access_token: str) -> dict:
@@ -91,31 +87,29 @@ def handle_decode_access_token(access_token: str) -> dict:
     Return a decoded access token
     """
     if not validate_token_anatomy(access_token):
-        raise_unauthorized(msg="Invalid access token")
+        RaiseHttpException.unauthorized_with_headers(msg="Invalid access token")
 
     try:
         return jwt.decode(access_token, JWT_SECRET, algorithms=JWT_ALGORITYHM)
     except JWTError as e:
         error_msg = str(e)
         if "Signature has expired" in error_msg:
-            raise_unauthorized(msg=EXPIRED_JWT_MESSAGE)
+            RaiseHttpException.unauthorized_with_headers(msg=EXPIRED_JWT_MESSAGE)
 
         if "Signature verification failed" in error_msg:
-            raise_unauthorized(msg="Invalid access token")
+            RaiseHttpException.unauthorized_with_headers(msg="Invalid access token")
 
-        raise_unauthorized()
+        RaiseHttpException.unauthorized_with_headers()
 
 
 def authenticate_password(plain_password: str, hashed_password: bytes) -> bool:
-    """
-    Returns True if the password matches the hashed password\n
-    Else returns False
-    """
+    """Checks a plain text password against a hashed password"""
     return checkpw(plain_password.encode("utf-8"), hashed_password)
 
 
 def handle_get_user_by_otp(db: Session, otp: str):
     from app.crud.users import UserCrud  # Circular Import issues
+
     if otp is None:
         RaiseHttpException.bad_request("Provide the user's otp")
 
@@ -136,7 +130,7 @@ def check_otp_expired(otp_exp_time: datetime):
         RaiseHttpException.bad_request("The one time password (otp) has expired")
 
 
-def get_auth_success_response(token: str, user_orm_data, message: str = "Success"):
+def get_auth_success_response(token: str, user_orm_data=None, message: str = "Success"):
     """
     Creates and returns an auth response for the given user and the token
     """
@@ -144,11 +138,13 @@ def get_auth_success_response(token: str, user_orm_data, message: str = "Success
         access_token=token,
         token_type="Bearer",
         message=message,
-        user=UserOut.from_orm(user_orm_data),
+        user=UserOut.from_orm(user_orm_data) if user_orm_data else None,
     )
 
 
-def set_cookie_header_response(response: Response, token: str, max_age: datetime | int = None):
+def set_cookie_header_response(
+    response: Response, token: str, max_age: datetime | int = None
+):
     """
     Handles setting the response cookie with token information
     """
@@ -162,3 +158,42 @@ def set_cookie_header_response(response: Response, token: str, max_age: datetime
         secure=True,
         max_age=max_age,
     )
+
+
+def validate_phone_number(phone):
+    pattern = re.compile(r"^\+[1-9]\d{1,14}$")
+    match = re.fullmatch(pattern, phone)
+    return bool(match)
+
+
+def handle_credentials_to_update_config(data: dict):
+    update_data = set_otp_columns_data(verified=True)
+    update_data.update(data)
+    return update_data
+
+
+def update_credentials_response_msg(phone: str = None, email: str = None):
+    if phone and email:
+        res_msg = "The phone number and email are updated successfully"
+    elif phone:
+        res_msg = "The  phone number is updated successfully."
+    else:
+        res_msg = "The email address is updated successfully"
+    return res_msg
+
+
+# FOR /auth ROUTER
+
+
+# Implementing temporary response message generator. Will be removed When twillo is setup
+def signup_response_msg(sms_sent: bool = None, email_sent: bool = None) -> str:
+    all_sent = all([sms_sent, email_sent])
+    response_msg = "Your account has been successfully created."
+
+    if all_sent:
+        return f"{response_msg} otp was sent to your phone number and email address."
+    elif sms_sent:
+        return f"{response_msg} otp was sent to your registered phone number."
+    elif email_sent:
+        return f"{response_msg} otp was sent to your registered email address."
+    return response_msg

@@ -1,10 +1,19 @@
 from datetime import datetime, timedelta
 
 
+def to_bool_to_int(object: any):
+    return int(bool(object))
+
+
 def remove_none_props_from_dict_recursive(data: dict) -> dict:
     """
     Remove all properties from a dictionary with None values.\n
-    Dictionary in embedded lists will also be processed recursively.
+    Dictionary in embedded lists are also be processed recursively.
+
+    Args:
+        data (dict): The dictionary to be processed
+    Returns:
+        dict : A processed dictionary without None property values
     """
     assert isinstance(data, dict), "Data parameter must be a dict"
 
@@ -16,7 +25,7 @@ def remove_none_props_from_dict_recursive(data: dict) -> dict:
         return filtered
 
     for key, value in dict_items:
-        # Filter out feilds with None values
+        # Filter out properties with None values
         if value is not None:
             if isinstance(value, dict):
                 filtered[key] = remove_none_props_from_dict_recursive(value)
@@ -35,52 +44,42 @@ def remove_none_props_from_dict_recursive(data: dict) -> dict:
     return filtered
 
 
-def strip_and_title(str: str):
-    return str.strip().title()
-
-
-def to_title_case(string) -> str:
+def title_case_words(string) -> str:
     """
     Returns a string where each word is a title case
+    Args:
+        string (str): The string to be proceesed
+    Returns:
+        string (str): String with each word title cased
     """
-    assert isinstance(string, str), "to_title_case only accepts strings as argument"
+    assert isinstance(string, str), "title_case_words only accepts strings as argument"
+
+    def title_case_word(chars: str):
+        return chars.strip().title()
 
     words = string.split(" ")
-
     if len(words) == 1:
-        return strip_and_title(words[0])
+        return title_case_word(words[0])
 
-    titled_words = [strip_and_title(word) for word in words]
+    titled_words = [title_case_word(word) for word in words]
     return " ".join(titled_words)
 
 
-class AddTime:
+def add_minutes(minutes: int = 5):
     """
-    Add minutes, seconds, days and months to a datetime object
+    Returns the current datetime plus added minutes
+    Args:
+        minutes (int): The number of minutes to be added to the current datetime
+    Returns:
+        datetime (datetime): New datetime with added minutes
     """
-
-    utc_date_now = datetime.utcnow()
-
-    @classmethod
-    def add_minutes(cls, mins: int):
-        return cls.utc_date_now + timedelta(minutes=mins)
-
-    @classmethod
-    def add_seconds(cls, seconds: int):
-        return cls.utc_date_now + timedelta(seconds=seconds)
-
-    @classmethod
-    def add_days(cls, days: int):
-        return cls.utc_date_now + timedelta(days=days)
-
-    @classmethod
-    def add_months(cls, months: int):
-        return cls.utc_date_now + timedelta(months=months)
+    return datetime.utcnow() + timedelta(minutes=minutes)
 
 
 def get_user_full_name(user):
-    assert (
-        user.first_name and user.last_name
-    ), "The user must have a first_name and a last_name"
-
+    """
+    Concatenates a user's first_name and last_name
+    """
+    has_first_last_names = user.first_name and user.last_name
+    assert has_first_last_names, "The user must have a first_name and a last_name"
     return f"{user.first_name} {user.last_name}"

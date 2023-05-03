@@ -5,7 +5,7 @@ from pydantic import EmailStr
 from app.schema.user import UserCreate, password_reg, e_164_phone_regex
 from app.utils.file_upload import store_image_file, ImageTooSmallException
 from app.utils.error_utils import RaiseHttpException
-from app.utils.general import to_title_case
+from app.utils.general import title_case_words
 
 
 def handle_user_multipart_data_create(
@@ -22,7 +22,7 @@ def handle_user_multipart_data_create(
     if profile_image:
         if not profile_image.content_type.startswith("image"):
             RaiseHttpException.bad_request(
-                "Only image files are allowed as profile image"
+                "Only image files are allowed as a profile image"
             )
 
         try:
@@ -33,9 +33,9 @@ def handle_user_multipart_data_create(
             )
 
     return UserCreate(
-        first_name=to_title_case(first_name),
-        last_name=to_title_case(last_name),
-        middle_name=to_title_case(middle_name) if middle_name else None,
+        first_name=title_case_words(first_name),
+        last_name=title_case_words(last_name),
+        middle_name=title_case_words(middle_name) if middle_name else None,
         phone=phone,
         email=email.lower() if email else None,
         password=password,

@@ -18,7 +18,7 @@ def get_token_from_auth_header(request: Request) -> str | None:
         request (Request): The incoming request object
 
     Returns:
-        access_token (str): The token if found.
+        access_token (string): The token if found.
         None:If there's no valid authorization header
     """
 
@@ -45,7 +45,7 @@ def get_token_from_cookies(request: Request) -> str | None:
         request (Request): The incoming request object.
 
     Returns:
-        access_token (str): The access token
+        access_token (string): The access token
         None: If the token was not set on the cookie
 
     """
@@ -53,13 +53,13 @@ def get_token_from_cookies(request: Request) -> str | None:
 
 
 def get_token(
-        cookie_token: Annotated[token_types, Depends(get_token_from_cookies)],
-        header_token: Annotated[token_types, Depends(get_token_from_auth_header)],
+    cookie_token: Annotated[token_types, Depends(get_token_from_cookies)],
+    header_token: Annotated[token_types, Depends(get_token_from_auth_header)],
 ) -> str:
     """Retrives the access token from authorization header or cookie
 
     Returns:
-        access token (str): The access token\n
+        access token (string): The access token\n
         raises HttpException if there's an invalid or no token
     """
     access_token = header_token if header_token else cookie_token
@@ -103,7 +103,7 @@ def get_user(db: dbSession, payload: Annotated[dict, protect]) -> User:
     Returns:
         user (User): The user data from databse
     """
-    user = UserCrud.get_by_id(db, id=payload.get("id"))
+    user = UserCrud.get_by_id(db, id=payload.get("my_id"))
 
     if user is None:
         RaiseHttpException.unauthorized_with_headers(
@@ -124,6 +124,10 @@ def get_active_user(user: Annotated[User, Depends(get_user)]):
     return user
 
 
+current_active_user = Depends(get_active_user)
+active_user_annontated = Annotated[User, current_active_user]
+
+
 def restrict_to(*args):
     """Restricts users by roles\n
     Params:
@@ -139,7 +143,7 @@ def restrict_to(*args):
     valid_roles = ["user", "staff", "admin"]
     assert all(i in valid_roles for i in args), "Invalid role arguments"
 
-    def handle_restrict_to(user: Annotated[User, Depends(get_user)]):
+    def handle_restrict_to(user: Annotated[User, current_active_user]):
         if user.role not in args:
             au.RaiseHttpException.forbidden(
                 "Access Denied!! You do not have permission"
@@ -148,9 +152,3 @@ def restrict_to(*args):
         return user
 
     return handle_restrict_to
-
-
-allow_only_user = Depends(restrict_to("user"))
-allow_user_admin = Depends(restrict_to("user", "admin"))
-allow_only_admin = Depends(restrict_to("admin"))
-allow_only_staff = Depends(restrict_to("staff"))

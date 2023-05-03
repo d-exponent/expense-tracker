@@ -2,11 +2,14 @@ from pydantic import BaseModel
 from datetime import datetime
 
 
-class BillCreate(BaseModel):
-    user_id: int
+class MyBillCreate(BaseModel):
     creditor_id: int
     total_credit_amount: float = 0.00
     total_paid_amount: float = 0.00
+
+
+class BillCreate(MyBillCreate):
+    user_id: int
 
 
 class BillOut(BillCreate):

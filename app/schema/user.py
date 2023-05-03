@@ -2,11 +2,9 @@ from pydantic import BaseModel, EmailStr, constr
 from datetime import datetime
 
 from app.schema.bill_payment import BillOut
-from app.utils.general import remove_none_props_from_dict_recursive as rnd
+from app.schema.commons import Update
 from app.utils.error_utils import RaiseHttpException
-from app.utils.custom_exceptions import DataError
 from app.schema.response import DefaultResponse
-
 
 """
 USER PASSWORD REGEX REQUIREMENTS
@@ -36,16 +34,10 @@ class UserBase(BaseModel):
     role: str
 
 
-class UpdateMe(BaseModel):
+class UpdateMe(Update):
     first_name: constr(max_length=40, strip_whitespace=True) = None
     middle_name: constr(max_length=40, strip_whitespace=True) = None
     last_name: constr(max_length=40, strip_whitespace=True) = None
-
-    def ensure_at_least_one_field(self):
-        filtered = rnd(self.__dict__)
-        if len(filtered.items()) == 0:
-            raise DataError("Provide at least one value to be updated")
-        return filtered
 
 
 class UpdateEmail:
@@ -81,7 +73,7 @@ class UserUpdate(UpdateMe):
         if self.password:
             RaiseHttpException.bad_request("Password cannot be updated via this route")
 
-        return self.ensure_at_least_one_field()
+        return self.ensure_valid_field()
 
 
 class UserCreate(UserBase, UserPassword):
@@ -117,7 +109,7 @@ class UserOutWithBills(UserOut):
 
 
 class UserAuthSuccess(BaseModel):
-    user: UserOut
+    user: UserOut = None
     access_token: str
     token_type: str
     message: str

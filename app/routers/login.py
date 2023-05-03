@@ -7,7 +7,6 @@ from app.schema import user as u
 from app.utils.database import dbSession
 from app.utils import auth as au
 
-
 router = APIRouter(prefix="/login")
 invalidCred = em.InvalidCredentials
 
@@ -27,13 +26,15 @@ def login_with_email_password(
 
     """
 
-    user = UserCrud.get_user_by_email(db, user_data.email)
+    user = UserCrud.get_by_email(db, user_data.email)
     if user is None:
-        au.raise_unauthorized(invalidCred.email_password_required)
+        au.RaiseHttpException.unauthorized_with_headers(
+            invalidCred.email_password_required
+        )
 
     is_authenticated = au.authenticate_password(user_data.password, user.password)
     if not is_authenticated:
-        au.raise_unauthorized(invalidCred.invalid_password)
+        au.RaiseHttpException.unauthorized_with_headers(invalidCred.invalid_password)
 
     access_token = au.handle_create_token_for_user(user_data=user)
     au.set_cookie_header_response(response=response, token=access_token)
@@ -42,15 +43,15 @@ def login_with_email_password(
     )
 
 
-@router.get("/otp")
-def login_with_otp(db: dbSession, response: Response, request: Request):
+@router.get("/access-code")
+def login_with_access_code(db: dbSession, response: Response, request: Request):
     """
-    Get a user from the otp passed from request header
-    - **Request Header Format** =>  key: (User-Otp), value: (otp)
+    Login a user from the access_code passed from request header
+    - **Request Header Format** =>  key: (Access-Code), value: (access-code) from /auth/
 
     Returns the user data and access token
     """
-    otp = request.headers.get("User-Otp")
+    otp = request.headers.get("Access-Code")
     user = au.handle_get_user_by_otp(db, otp)
     au.check_otp_expired(user.otp_expires_at)
 

@@ -14,7 +14,7 @@ def generate_random_image_name(file_extension: str = "png"):
     Returns a random url safe string with the given file extension
 
     Args:
-    file_extension (str): The extension of the file eg .png or .jpeg
+    file_extension (string): The extension of the file eg .png or .jpeg
 
     Returns:
         str: The url safe string appended with the given file extension
@@ -33,7 +33,7 @@ def store_image_file(file: UploadFile, location: str):
 
     Args:
     file (UploadFile) : The file to stored
-    location (str) : The dir in the /static/images/ directory to store the image
+    location (string) : The dir in the /static/images/ directory to store the image
         If the directory does not exist, it will be created
 
     Returns:

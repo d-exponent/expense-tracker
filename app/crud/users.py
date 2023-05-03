@@ -3,9 +3,8 @@ from bcrypt import gensalt, hashpw
 
 from app.crud.base_crud import Crud
 from app.models import User as UserOrm
-from app.utils.general import to_title_case
+from app.utils.general import title_case_words
 from app.schema.user import UserCreate
-from app.utils import custom_exceptions as ce
 
 
 class UserCrud(Crud):
@@ -17,10 +16,12 @@ class UserCrud(Crud):
         return hashpw(password_bytes, gensalt())
 
     @classmethod
-    def __process(cls, user: UserCreate):
-        user.first_name = to_title_case(user.first_name)
-        user.middle_name = to_title_case(user.middle_name) if user.middle_name else None
-        user.last_name = to_title_case(user.last_name)
+    def process(cls, user: UserCreate):
+        user.first_name = title_case_words(user.first_name)
+        user.middle_name = (
+            title_case_words(user.middle_name) if user.middle_name else None
+        )
+        user.last_name = title_case_words(user.last_name)
 
         if user.password:
             user.password = cls.__hash_password(user.password)
@@ -31,24 +32,7 @@ class UserCrud(Crud):
 
     @classmethod
     def create(cls, db: Session, user: UserCreate) -> UserOrm:
-        processed_user = cls.__process(user)
-        new_user = cls.orm_model(**processed_user.dict())
-        return cls.commit_data_to_db(db=db, data=new_user)
-
-    @classmethod
-    def __get_user_by_phone_query(cls, db: Session, phone: str):
-        model = cls.orm_model
-        return db.query(model).filter(model.phone == phone)
-
-    @classmethod
-    def get_user_by_phone(cls, db: Session, phone: str) -> UserOrm:
-        return cls.__get_user_by_phone_query(db, phone).first()
-
-    @classmethod
-    def get_user_by_email(cls, db: Session, email: str) -> UserOrm:
-        model = cls.orm_model
-        user_email = email.lower()
-        return db.query(model).filter(model.email == user_email).first()
+        return super().create(db, data=cls.process(user))
 
     @classmethod
     def get_user_by_otp(cls, db: Session, otp: str) -> UserOrm:
@@ -57,7 +41,7 @@ class UserCrud(Crud):
 
     @classmethod
     def update_user_by_phone(cls, db: Session, phone: str, update_data: dict):
-        query = cls.__get_user_by_phone_query(db, phone)
+        query = cls.get_by_phone_query(db, phone)
         query.update(update_data)
         db.commit()
         return query.first()
@@ -69,10 +53,7 @@ class UserCrud(Crud):
         db.commit()
 
     @classmethod
-    def handle_delete_me(cls, db: Session, id: int):
+    def delete_me(cls, db: Session, id: int):
         query = cls.get_by_id_query(db=db, id=id)
-        if query.first() is None:
-            raise ce.UserNotFoundException
-
         query.update({"is_active": False})
         db.commit()

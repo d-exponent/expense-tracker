@@ -22,7 +22,7 @@ table = "creditors"
 def upgrade() -> None:
     op.create_table(
         table,
-        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("my_id", sa.Integer, primary_key=True),
         sa.Column("name", sa.String(100), nullable=False, unique=True),
         sa.Column("description", sa.String(300)),
         sa.Column("street_address", sa.String),

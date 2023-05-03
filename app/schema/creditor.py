@@ -2,6 +2,7 @@ from pydantic import BaseModel, EmailStr, constr
 from datetime import datetime
 
 from app.schema.user import e_164_phone_regex
+from app.schema.commons import Update
 
 
 class CreditorCreateOptional(BaseModel):
@@ -20,7 +21,7 @@ class CreditorCreate(CreditorCreateOptional):
     state: constr(strip_whitespace=True, max_length=40)
 
 
-class CreditorUpdate(CreditorCreateOptional):
+class CreditorUpdate(CreditorCreateOptional, Update):
     name: constr(strip_whitespace=True, max_length=100) = None
     city: constr(strip_whitespace=True, max_length=40) = None
     state: constr(strip_whitespace=True, max_length=40) = None
@@ -28,7 +29,7 @@ class CreditorUpdate(CreditorCreateOptional):
 
 
 class CreditorOut(CreditorCreate):
-    id: int = None
+    id: int
 
     class Config:
         orm_mode = True

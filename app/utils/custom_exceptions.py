@@ -24,3 +24,11 @@ class SendSmsError(Exception):
 
 class SendEmailError(Exception):
     pass
+
+
+class QueryExecError(Exception):
+    pass
+
+
+class DeleteRecordError(Exception):
+    pass

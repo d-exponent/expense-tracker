@@ -21,11 +21,11 @@ table = "payments"
 def upgrade() -> None:
     op.create_table(
         table,
-        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("my_id", sa.Integer, primary_key=True),
         sa.Column(
             "bill_id",
             sa.Integer,
-            sa.ForeignKey("bills.id", ondelete="CASCADE"),
+            sa.ForeignKey("bills.my_id", ondelete="CASCADE"),
             nullable=False,
         ),
         sa.Column("note", sa.Text),

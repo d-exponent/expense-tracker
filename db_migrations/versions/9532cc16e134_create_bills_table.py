@@ -21,17 +21,17 @@ table = "bills"
 def upgrade() -> None:
     op.create_table(
         table,
-        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("my_id", sa.Integer, primary_key=True),
         sa.Column(
             "user_id",
             sa.Integer,
-            sa.ForeignKey("users.id", ondelete="CASCADE"),
+            sa.ForeignKey("users.my_id", ondelete="CASCADE"),
             nullable=False,
         ),
         sa.Column(
             "creditor_id",
             sa.Integer,
-            sa.ForeignKey("creditors.id", ondelete="SET NULL"),
+            sa.ForeignKey("creditors.my_id", ondelete="SET NULL"),
             nullable=False,
         ),
         sa.Column("total_credit_amount", sa.Numeric(10, 2), nullable=False),
