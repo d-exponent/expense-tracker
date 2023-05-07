@@ -40,12 +40,14 @@ def execute_query(query, params, mapper: Callable):
         with conn.cursor() as cur:
             cur.execute(query, params)
             records = cur.fetchall()
+            if len(records) == 0:
+                yield records
+            else:
+                results = []
+                for record in records:
+                    results.append(mapper(record))
+                yield results
     except (DatabaseError, OperationalError):
         raise QueryExecError
-    else:
-        results = []
-        for record in records:
-            results.append(mapper(record))
-        yield results
     finally:
         conn.close()

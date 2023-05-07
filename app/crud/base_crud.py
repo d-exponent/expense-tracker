@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError, DataError, OperationalError
 
-from app.utils.error_utils import RaiseHttpException
+from app.utils import error_utils as eu
 from app.utils.general import remove_none_props_from_dict_recursive as rnd
 
 
@@ -17,12 +18,12 @@ class Crud:
         return db.query(cls.orm_model).filter(cls.orm_model.id == id)
 
     @classmethod
-    def get_by_id(cls, db: Session, id: int):
-        return cls.get_by_id_query(db, id).first()
-
-    @classmethod
     def get_by_phone_query(cls, db: Session, phone: str):
         return db.query(cls.orm_model).filter(cls.orm_model.phone == phone)
+
+    @classmethod
+    def get_by_id(cls, db: Session, id: int):
+        return cls.get_by_id_query(db, id).first()
 
     @classmethod
     def get_by_phone(cls, db: Session, phone: str):
@@ -30,7 +31,9 @@ class Crud:
 
     @classmethod
     def get_by_email(cls, db: Session, email: str):
-        return db.query(cls.orm_model).filter(cls.orm_model.email == email.lower()).first()
+        return (
+            db.query(cls.orm_model).filter(cls.orm_model.email == email.lower()).first()
+        )
 
     @classmethod
     def commit_data_to_db(cls, db: Session, data):
@@ -44,23 +47,38 @@ class Crud:
         return db.query(cls.orm_model).offset(skip).limit(limit).all()
 
     @classmethod
-    def update_by_id(cls, db: Session, id: int, data: dict, table_name: str):
+    def update_by_id(cls, db: Session, id: int, data: dict, table: str):
         query = cls.get_by_id_query(db, id)
 
         if query.first() is None:
-            message = f"There is no {table_name.rstrip('s')} with an id {id}"
-            RaiseHttpException.bad_request(message)
+            message = f"There is no {table.rstrip('s')} with an id {id}"
+            eu.RaiseHttpException.bad_request(message)
 
-        query.update(rnd(data), synchronize_session=False)
-        db.commit()
-        return query.first()
+        try:
+            query.update(rnd(data), synchronize_session=False)
+
+        except IntegrityError as e:
+            if 'users_' in str(e):  # An error in updating users table
+                eu.handle_create_user_integrity_exception(str(e))
+            else:
+                msg = 'The data violates set constraints. Check the data and try again'
+                eu.RaiseHttpException.bad_request(msg)
+
+        except (DataError, OperationalError):
+            msg = "Could not perform the update operation. Please try again!"
+            eu.RaiseHttpException.server_error(msg)
+
+        else:
+            db.commit()
+            return cls.get_by_id(db, id)
 
     @classmethod
-    def delete_by_id(cls, db: Session, id: int, record_name: str = "record"):
+    def delete_by_id(cls, db: Session, id: int, table: str = "record"):
         query = cls.get_by_id_query(db, id)
 
         if query.first() is None:
-            RaiseHttpException.bad_request(msg=f"This {record_name} doesn't exist.")
+            msg = f"This {table.rstrip('s')} doesn't exist."
+            eu.RaiseHttpException.bad_request(msg)
 
         query.delete()
         db.commit()

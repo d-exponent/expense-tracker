@@ -1,17 +1,18 @@
 from typing import Annotated
+import asyncio
 from sqlalchemy.exc import IntegrityError
 from pydantic import EmailStr
 from fastapi import APIRouter, Response, Depends, Query, Request
 
-from app.routers import login, me
+from app.routers import login
 from app.crud.users import UserCrud
-from app.dependencies.auth import current_active_user
 from app.schema import user as u
 from app.schema.response import DefaultResponse
 from app.features.sms import SMSMessenger, SendSmsError
 from app.features.send_email import EmailMessenger, SendEmailError
-from app.dependencies.user_multipart import handle_user_multipart_data_create
 
+from app.dependencies.auth import current_active_user
+from app.dependencies import user_multipart as um
 from app.utils import auth as au
 from app.utils import error_utils as eu
 from app.utils.database import dbSession
@@ -19,23 +20,22 @@ from app.utils import error_messages as em
 from app.utils.general import add_minutes, get_user_full_name, to_bool_to_int
 
 router = APIRouter(prefix="/auth", tags=["auth"])
-router.include_router(me.router)
 router.include_router(login.router)
 
 
 @router.post("/signup", status_code=201, response_model=u.UserAuthSuccess)
 async def sign_up_user(
     db: dbSession,
-    user: Annotated[u.UserCreate, Depends(handle_user_multipart_data_create)],
+    user: Annotated[u.UserCreate, Depends(um.handle_user_multipart_data_create)],
     response: Response,
 ):
     """Registers a new user and stores the profile image if any
-    - **role**: Defaults to user on this route irrespective of value provided.
+    - **role**: Persited to 'user' on this route so it can be ommited from multipart form
     """
 
     # Only the admin or staff can create a user with a different role.
     user.role = "user"
-    user_data = user.dict().copy()
+    user_data = user.__dict__
     user_otp = au.generate_otp(5)
     update_data = au.set_otp_columns_data(user_otp, add_minutes(minutes=10))
     user_data.update(update_data)
@@ -44,31 +44,28 @@ async def sign_up_user(
         db_user = UserCrud.create(db=db, user=u.UserSignUp(**user_data))
     except IntegrityError as e:
         eu.handle_create_user_integrity_exception(str(e))
-    else:
-        # TEMPORARY RESPONSE IMPLEMENTATION
-        email_success = None
-        sms_success = None
-        user_full_name = get_user_full_name(db_user)
-        try:
-            await EmailMessenger(db_user.email, user_full_name).send_welcome(user_otp)
-            email_success = True
-        except SendEmailError:
-            pass
 
+    user_full_name = get_user_full_name(db_user)
+    email_success = True
+    sms_success = True
+    tasks = [
+        EmailMessenger(db_user.email, user_full_name).send_welcome(user_otp),
+        SMSMessenger(db_user.phone, user_full_name).send_welcome(user_otp),
+    ]
+
+    for task in asyncio.as_completed(tasks):
         try:
-            await SMSMessenger(db_user.phone, user_full_name).send_welcome(user_otp)
-            sms_success = True
+            await task
         except SendSmsError:
-            pass
+            sms_success = False
+        except SendEmailError:
+            email_success = False
 
-        access_token = au.handle_create_token_for_user(user_data=db_user)
-        au.set_cookie_header_response(response=response, token=access_token)
+    access_token = au.handle_create_token_for_user(db_user)
+    au.set_cookie_header_response(response, access_token)
+    res_msg = au.signup_response_msg(sms_success, email_success)
 
-        return au.get_auth_success_response(
-            token=access_token,
-            user_orm_data=db_user,
-            message=au.signup_response_msg(sms_success, email_success),
-        )
+    return au.get_auth_success_response(access_token, db_user, res_msg)
 
 
 @router.get("/access-code", response_model=DefaultResponse)
@@ -94,9 +91,8 @@ async def get_access_code(
 
     if phone:
         phone_number = "+" + phone if "+" not in phone else phone
-        is_valid_phone = au.validate_phone_number(phone=phone_number)
 
-        if is_valid_phone is False:
+        if not au.validate_phone_number(phone=phone_number):
             eu.RaiseHttpException.bad_request("Provide a valid phone number")
 
         db_user = UserCrud.get_by_phone(db, phone=phone_number)
@@ -109,9 +105,9 @@ async def get_access_code(
     otp = au.generate_otp(5)
     to_update = au.set_otp_columns_data(otp, add_minutes())
     UserCrud.update_user_by_phone(db, db_user.phone, to_update)
-
     user_full_name = get_user_full_name(db_user)
     receiver = None
+
     if phone:
         try:
             await SMSMessenger(db_user.phone, user_full_name).send_otp(otp)
@@ -160,6 +156,7 @@ def update_phone_email(
     au.check_otp_expired(user.otp_expires_at)
 
     # Ensure credentials to be updated are not the same as already in database
+    # No need to query the db when we don't have to
     credentials_to_update = {}
     if phone and (user.phone == phone):
         msg = "The phone number is the user's current phone number"
@@ -186,7 +183,7 @@ def update_phone_email(
     "/logout", dependencies=[current_active_user], response_model=DefaultResponse
 )
 def logout(response: Response):
-    """Destroys the access token on the response cookie"""
+    """Logs out the current user"""
     token = "logged out"
 
     au.set_cookie_header_response(

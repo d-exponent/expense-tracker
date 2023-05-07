@@ -5,10 +5,10 @@ from fastapi import Response
 from jose import jwt, JWTError
 from datetime import timedelta, datetime
 
-from app.utils.error_utils import RaiseHttpException
-from app.schema.user import UserAuthSuccess, UserOut
-from app.utils.database import Session
+from app.schema.user import UserAuthSuccess, UserOut, UserAllInfo
 from app.settings import settings
+from app.utils.database import Session
+from app.utils.error_utils import RaiseHttpException
 
 
 def get_timestamp_secs(date: datetime) -> int:
@@ -72,14 +72,14 @@ def validate_token_anatomy(token: str) -> bool:
     return bool(re.fullmatch(jwt_token_regex, token))
 
 
-def handle_create_token_for_user(user_data: UserOut) -> str:
+def handle_create_token_for_user(user: UserAllInfo) -> str:
     """
     Ceates token for a user
     """
-
-    if not user_data.id:
+    if not user.id:
         RaiseHttpException.unauthorized_with_headers(msg="invalid user credentials")
-    return create_access_token({"my_id": user_data.id})
+
+    return create_access_token({"my_id": user.id})
 
 
 def handle_decode_access_token(access_token: str) -> dict:
@@ -87,7 +87,7 @@ def handle_decode_access_token(access_token: str) -> dict:
     Return a decoded access token
     """
     if not validate_token_anatomy(access_token):
-        RaiseHttpException.unauthorized_with_headers(msg="Invalid access token")
+        RaiseHttpException.unauthorized_with_headers("Invalid access token")
 
     try:
         return jwt.decode(access_token, JWT_SECRET, algorithms=JWT_ALGORITYHM)
@@ -114,8 +114,9 @@ def handle_get_user_by_otp(db: Session, otp: str):
         RaiseHttpException.bad_request("Provide the user's otp")
 
     user = UserCrud.get_user_by_otp(db, otp)
+
     if user is None:
-        RaiseHttpException.unauthorized_with_headers("Invalid Otp")
+        RaiseHttpException.unauthorized_with_headers("Invalid login credentilas")
 
     return user
 
@@ -180,9 +181,6 @@ def update_credentials_response_msg(phone: str = None, email: str = None):
     else:
         res_msg = "The email address is updated successfully"
     return res_msg
-
-
-# FOR /auth ROUTER
 
 
 # Implementing temporary response message generator. Will be removed When twillo is setup

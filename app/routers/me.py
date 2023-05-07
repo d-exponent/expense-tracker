@@ -1,23 +1,26 @@
+import os
 from typing import Annotated
-from fastapi import APIRouter, Body, Path
+from fastapi.responses import FileResponse
+from fastapi import APIRouter, Body, Path, Depends
 
-
-from app.schema import user as u
 from app.crud.users import UserCrud
 from app.crud.bills import BillCrud
+from app.crud.payments import PaymentCrud, CreatePaymentException
 from app.crud.creditors import CreditorCrud
-from app.crud.payments import PaymentCrud
-from app.utils.database import dbSession
+
+from app.schema import user as u
 from app.schema import response as r, bill_payment as bp
 from app.dependencies.auth import current_active_user
+from app.dependencies.user_multipart import handle_image_upload
 
-from app.utils.custom_exceptions import QueryExecError
 from app.utils import error_utils as eu
+from app.utils.database import dbSession
 from app.utils.bills import handle_make_bill
-from app.utils.custom_exceptions import DataError
+from app.utils.file_operations import absolute_path_for_image
+from app.utils.custom_exceptions import DataError, QueryExecError
 
 
-router = APIRouter(prefix="/me", dependencies=[current_active_user])
+router = APIRouter(prefix="/me", tags=["me"], dependencies=[current_active_user])
 current_user = Annotated[u.UserAllInfo, current_active_user]
 
 
@@ -25,6 +28,19 @@ current_user = Annotated[u.UserAllInfo, current_active_user]
 def get_me(me: current_user):
     """Returns the data of the currently logged-in active user"""
     return me
+
+
+@router.get('/profile-picture')
+async def get_my_profile_image(me: current_user):
+    image_file = absolute_path_for_image(me.image_url)
+
+    if not os.path.exists(image_file):
+        eu.RaiseHttpException.bad_request('The image does not exist')
+
+    return FileResponse(image_file)
+
+
+# ------------ MY UPDATE OPERATIONS ---
 
 
 @router.patch("/", response_model=u.UserOut)
@@ -35,6 +51,34 @@ def update_me(db: dbSession, me: current_user, data: Annotated[u.UpdateMe, Body(
         eu.RaiseHttpException.bad_request(str(e))
     else:
         return UserCrud.update_user_by_phone(db, me.phone, user_data)
+
+
+@router.patch('/profile-picture', response_model=r.DefaultResponse)
+def update_profile_image(
+    db: dbSession,
+    me: current_user,
+    image_url: Annotated[str, Depends(handle_image_upload)],
+):
+    if image_url is None:
+        eu.RaiseHttpException.bad_request('Provide an image file!')
+
+    prev_image_url = me.image_url
+    updated_me = UserCrud.update_by_id(
+        db=db, id=me.id, data={"image_url": image_url}, table='users'
+    )
+
+    # Delete the previous image
+    prev_image_loc = absolute_path_for_image(prev_image_url)
+    if os.path.exists(prev_image_loc):
+        try:
+            os.remove(prev_image_loc)
+        except OSError:
+            pass
+
+    return r.DefaultResponse(
+        data=u.UserOut.from_orm(updated_me),
+        message='Profile image is updated successfully!',
+    )
 
 
 @router.patch(
@@ -67,11 +111,17 @@ def update_my_password(
     return r.DefaultResponse(message="Password updated successfully")
 
 
+# ------------------UPDATE OPERATIONS END
+
+
 @router.delete("/", status_code=204)
 def delete_me(db: dbSession, me: current_user):
     """Deletes the currently logged-in user from the database"""
     UserCrud.delete_me(db=db, id=me.id)
     return ""
+
+
+# ----------------------------------- MY CREDITORS ---------------------------
 
 
 @router.get("/creditors", response_model=r.DefaultResponse)
@@ -86,7 +136,9 @@ def get_my_creditors(me: current_user):
         )
 
 
-# MY BILLS
+#  ----------------------------------- MY BILLS -----------------------------------
+
+
 @router.post("/bills", response_model=r.DefaultResponse)
 def create_my_bill(
     db: dbSession, me: current_user, bill: Annotated[bp.MyBillCreate, Body()]
@@ -96,7 +148,7 @@ def create_my_bill(
     return handle_make_bill(db, bill=my_bill)
 
 
-@router.get("/bills")
+@router.get("/bills", response_model=r.DefaultResponse)
 def get_my_bills(db: dbSession, me: current_user):
     my_bills = BillCrud.get_bills_for_user(db, user_id=me.id)
     return r.DefaultResponse(
@@ -120,7 +172,9 @@ def delete_my_bill(
     return ""
 
 
-# My payments
+# ------------------------------------------ My PAYMENTS  -----------------------------------------
+
+
 @router.get("/payments", response_model=r.DefaultResponse)
 def get_my_payments(me: current_user):
     try:
@@ -130,3 +184,27 @@ def get_my_payments(me: current_user):
     return r.DefaultResponse(
         data=eu.handle_records(records=my_payments, table_name="payments")
     )
+
+
+@router.post('/payments', response_model=r.DefaultResponse)
+def make_payment(
+    db: dbSession, me: current_user, payment: Annotated[bp.PaymentCreate, Body()]
+):
+    bills = BillCrud.get_bills_for_user(db, me.id)
+
+    # current user has no bills
+    if len(bills) == 0:
+        eu.RaiseHttpException.bad_request("You currently have no bills")
+
+    # Ensure the referenced bill belongs to the current user
+    if len([bill for bill in bills if bill.id == payment.bill_id]) == 0:
+        msg = "You did not create the bill you are trying to make payment on"
+        eu.RaiseHttpException.forbidden(msg)
+
+    try:
+        res_msg = "Payment created successfully!"
+        db_payment = PaymentCrud.create(db, payment)
+    except CreatePaymentException as e:
+        eu.RaiseHttpException.bad_request(str(e))
+    else:
+        return r.DefaultResponse(message=res_msg, data=db_payment)

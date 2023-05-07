@@ -1,8 +1,8 @@
 from sqlalchemy.exc import IntegrityError
-from app.utils.database import dbSession
 
 from app.schema import bill_payment as bp, response as r
 from app.crud.bills import BillCrud
+from app.utils.database import dbSession
 from app.utils import error_utils as eu
 
 

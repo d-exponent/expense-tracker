@@ -1,7 +1,3 @@
-from twilio.rest import Client as TwilloClient
-from app.settings import settings
-
-
 def replace_otp(words: str, otp: str | int):
     return words.replace("<otp>", otp)
 
@@ -10,12 +6,6 @@ def replace_otp(words: str, otp: str | int):
 signup_sms = "Your verification code is <otp>\nExpires in 10 minutes"
 
 send_otp_sms = "Your one time verification code is <otp>. It expires in 5 minutes"
-
-
-def get_twillo_client(
-    sid: str = settings.twillo_account_sid, token: str = settings.twillo_auth_token
-):
-    return TwilloClient(username=sid, password=token)
 
 
 def add_header_greeting(name: str, msg: str):

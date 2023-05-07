@@ -3,10 +3,11 @@ from typing import Annotated
 
 
 from app.crud.bills import BillCrud
-from app.utils.database import dbSession
-from app.schema import bill_payment as bp
 from app.dependencies import auth
+
+from app.schema import bill_payment as bp
 from app.schema.response import DefaultResponse
+from app.utils.database import dbSession
 from app.utils import error_utils as eu, bills as b
 
 
@@ -56,7 +57,7 @@ def get_bill(
 
         # Error out if the user didn't make the bill
         if not any(b for b in bills if b.id == bill.id):
-            eu.RaiseHttpException.forbidden("You cant't get a bill you didn't create")
+            eu.RaiseHttpException.forbidden("You can't get a bill you didn't create")
 
     return bill
 

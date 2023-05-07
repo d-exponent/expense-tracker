@@ -1,6 +1,7 @@
+import os
 from fastapi import FastAPI
 from app.routers import api_v1
-import os
+from fastapi.middleware.cors import CORSMiddleware
 
 
 app = FastAPI(
@@ -8,11 +9,15 @@ app = FastAPI(
     version="1.0",
 )
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 app.include_router(api_v1.router)
-
-
-def run():
-    os.system("uvicorn app.main:app --reload")
 
 
 """
@@ -22,4 +27,4 @@ For Debugging, RUN uvicorn app.main:app --reload from CLI
 
 
 if __name__ == "__main__":
-    run()
+    os.system("uvicorn app.main:app --reload")

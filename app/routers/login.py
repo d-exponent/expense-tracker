@@ -1,9 +1,10 @@
 from typing import Annotated
 from fastapi import APIRouter, Body, Response, Request
 
-from app.utils import error_messages as em
-from app.crud.users import UserCrud
 from app.schema import user as u
+from app.crud.users import UserCrud
+
+from app.utils import error_messages as em
 from app.utils.database import dbSession
 from app.utils import auth as au
 

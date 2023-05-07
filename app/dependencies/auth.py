@@ -24,18 +24,17 @@ def get_token_from_auth_header(request: Request) -> str | None:
 
     bearer = request.headers.get("Authorization")
 
-    if bearer:
-        # Validate the authorization header
-        if bearer.startswith("Bearer") is False:
-            return None
+    if bearer is None:
+        return bearer
 
-        bearer_contents = bearer.split(" ")
-        if len(bearer_contents) != 2:
-            return None
+    if not bearer.startswith("Bearer"):
+        return None
 
-        return bearer_contents[1]
+    bearer_contents = bearer.split(" ")
+    if len(bearer_contents) != 2:
+        return None
 
-    return None
+    return bearer_contents[1]
 
 
 def get_token_from_cookies(request: Request) -> str | None:

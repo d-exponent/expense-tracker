@@ -7,6 +7,12 @@ from app.utils import messengers as m
 from app.utils.custom_exceptions import SendSmsError
 
 
+twillio_client_config = {
+    "username": settings.twillo_account_sid,
+    "password": settings.twillo_auth_token,
+}
+
+
 @dataclass
 class SMSMessenger:
     """Handles Sending SMS using Twillo Client"""
@@ -14,7 +20,7 @@ class SMSMessenger:
     receiver_phone: str
     receiver_name: str = ""
     app_phone_num: str = settings.twillo_from_phone_number
-    client: TwilloClient = m.get_twillo_client()
+    client: TwilloClient = TwilloClient(**twillio_client_config)
 
     def _engine(self, msg: str):
         self.client.messages.create(
@@ -22,15 +28,6 @@ class SMSMessenger:
         )
 
     async def _send(self, msg: str):
-        """Runs _engine in async mode
-
-        Args:
-            msg (str): message to be sent to receiver
-
-        Raises:
-            SendSmsError: when messags is not sent
-        """
-
         try:
             await asyncio.to_thread(self._engine, msg)
         except Exception as e:

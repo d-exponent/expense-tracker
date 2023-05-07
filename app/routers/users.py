@@ -2,14 +2,15 @@ from typing import Annotated
 from sqlalchemy.exc import IntegrityError
 from fastapi import APIRouter, Path, Query, Body, Depends
 
-from app.dependencies import auth
-from app.crud.users import UserCrud
 from app.utils.database import dbSession
+from app.utils import error_utils as eu
+from app.utils.custom_exceptions import DataError
+
+from app.crud.users import UserCrud
 from app.schema import user as u
 from app.schema.response import DefaultResponse
-from app.utils.custom_exceptions import DataError
+from app.dependencies import auth
 from app.dependencies.user_multipart import handle_user_multipart_data_create
-from app.utils import error_utils as eu
 
 router = APIRouter(
     prefix="/users", tags=["users"], dependencies=[auth.current_active_user]
@@ -28,11 +29,9 @@ allow_admin_staff = [Depends(auth.restrict_to("admin", "staff"))]
 def create_user(
     *,
     db: dbSession,
-    role: str = Query(default="user"),
     user_data: Annotated[u.UserCreate, Depends(handle_user_multipart_data_create)],
 ):
     try:
-        user_data.role = role  # Ovewrite role
         db_user = UserCrud.create(db=db, user=user_data)
     except IntegrityError as e:
         eu.handle_create_user_integrity_exception(str(e))
@@ -108,5 +107,5 @@ def get_user(
     "/{id}", status_code=204, dependencies=[Depends(auth.restrict_to("admin"))]
 )
 def delete_user(db: dbSession, id: Annotated[int, Path()]):
-    UserCrud.delete_by_id(db=db, id=id, record_name="user")
+    UserCrud.delete_by_id(db=db, id=id, table="user")
     return ""

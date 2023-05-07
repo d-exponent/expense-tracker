@@ -4,11 +4,12 @@ from fastapi import APIRouter, Body, Path, Query, Depends
 
 from app.dependencies import auth
 from app.crud.creditors import CreditorCrud
-from app.utils.database import dbSession
-from app.utils.custom_exceptions import DataError
+
 from app.schema.response import DefaultResponse
 from app.schema import creditor as cr
 from app.utils import error_utils as eu
+from app.utils.database import dbSession
+from app.utils.custom_exceptions import DataError
 
 router = APIRouter(
     prefix="/creditors",
@@ -77,7 +78,7 @@ def update_creditor(
     except DataError as e:
         eu.RaiseHttpException.bad_request(str(e))
     else:
-        updated = CreditorCrud.update_by_id(db, id, data, table_name="creditors")
+        updated = CreditorCrud.update_by_id(db, id, data, table="creditors")
         return DefaultResponse(data=updated)
 
 
@@ -87,5 +88,5 @@ def update_creditor(
     dependencies=[Depends(auth.restrict_to("staff", "admin"))],
 )
 def delete_creditor(db: dbSession, id: Annotated[int, Path()]):
-    CreditorCrud.delete_by_id(db=db, id=id, record_name="creditor")
+    CreditorCrud.delete_by_id(db=db, id=id, table="creditor")
     return ""

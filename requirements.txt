@@ -1,7 +1,7 @@
 aiosmtplib==2.0.1
 alembic==1.10.2
 anyio==3.6.2
--e git+https://github.com/d-exponent/expense-tracker.git@28ce49200026fa7952182c785bea67426ad13ced#egg=app
+-e git+https://github.com/d-exponent/expense-tracker.git@95415e5f286d96e5b4847797e931c05159b83658#egg=app
 bcrypt==4.0.1
 black==23.1.0
 certifi==2022.12.7
@@ -31,6 +31,7 @@ mypy-extensions==1.0.0
 orjson==3.8.7
 packaging==23.0
 pathspec==0.11.1
+Pillow==9.5.0
 platformdirs==3.1.1
 psycopg2==2.9.5
 pyasn1==0.4.8
@@ -54,6 +55,7 @@ sniffio==1.3.0
 SQLAlchemy==2.0.7
 starlette==0.26.1
 tomli==2.0.1
+tqdm==4.65.0
 twilio==7.17.0
 typing_extensions==4.5.0
 ujson==5.7.0

@@ -3,12 +3,13 @@ from typing import Annotated
 from fastapi import APIRouter, Query, Path, Body, Depends
 
 from app.dependencies import auth
+
 from app.utils.database import dbSession
-from app.schema import bill_payment as bp
-from app.schema.user import UserAllInfo
-from app.crud.payments import PaymentCrud, CreatePaymentException
-from app.crud.bills import BillCrud
 from app.utils import error_utils as eu
+from app.schema.user import UserAllInfo
+from app.schema import bill_payment as bp
+from app.crud.bills import BillCrud
+from app.crud.payments import PaymentCrud, CreatePaymentException
 
 
 allow_staff_admin = [Depends(auth.restrict_to("staff", "admin"))]
@@ -28,7 +29,6 @@ router = APIRouter(
     "/",
     response_model=bp.PaymentOut,
     status_code=201,
-    dependencies=allow_only_user,
 )
 def create_payment(db: dbSession, payment_data: Annotated[bp.PaymentCreate, Body()]):
     try:
@@ -62,11 +62,12 @@ def get_payment(
         eu.RaiseHttpException.not_found("The payment was not found")
 
     # Admins and staffs have unlimited access to get a payment
+    # Alt users.role == 'user', however more roles might be added eg 'creditiors' which would break the check
     if user.role not in ("admin", "staff"):
         users_bills = BillCrud.get_bills_for_user(db, user_id=user.id)
 
         # Ensure only a user who made a payment can view it
-        if not any(b for b in users_bills if b.id == payment.bill_id):
+        if len([bill for bill in users_bills if bill.id == payment.bill_id]) == 0:
             message = "You can only get a payment you made"
             eu.RaiseHttpException.forbidden(message)
 

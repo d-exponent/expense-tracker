@@ -16,20 +16,18 @@ class EmailMessenger:
     receiver_email: str
     receiver_name: str = ""
     app_email: str = settings.email_address
-    message_setter: EmailMessage = EmailMessage
 
     def _set_msg(self):
         """Sets the from and to feilds of the message object"""
-        msg = self.message_setter()
+        msg = EmailMessage()
         msg["From"] = self.app_email
         msg["To"] = self.receiver_email
         return msg
 
     def _engine(self, msg):
-        """Logins app's email and sends email to receiver"""
+        """Sends email to receiver"""
         try:
             with smtplib.SMTP(host="smtp.office365.com", port=587) as server:
-                server.ehlo()
                 server.starttls(context=ssl.create_default_context())
                 server.login(user=self.app_email, password=settings.email_password)
                 server.send_message(msg)
@@ -78,7 +76,6 @@ class EmailMessenger:
         """
 
         msg = self._set_msg()
-        subject = f"{self.greeting}. Your Access Code"
-        msg["subject"] = subject
+        msg["subject"] = f"{self.greeting}. Your Access Code"
         msg.set_content(m.create_content(m.update_email_message, otp))
         await self._send(msg)

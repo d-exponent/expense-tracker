@@ -1,9 +1,10 @@
 from pydantic import BaseModel, EmailStr, constr
 from datetime import datetime
 
+from app.utils.error_utils import RaiseHttpException
+
 from app.schema.bill_payment import BillOut
 from app.schema.commons import Update
-from app.utils.error_utils import RaiseHttpException
 from app.schema.response import DefaultResponse
 
 """

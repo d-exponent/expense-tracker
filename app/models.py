@@ -2,8 +2,8 @@ import sqlalchemy as sa
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql.expression import text, func
 
-from app.database.sqlalchemy_config import Base
 from app.utils import auth as au
+from app.database.sqlalchemy_config import Base
 
 
 class User(Base):
