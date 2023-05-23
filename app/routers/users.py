@@ -34,7 +34,7 @@ def create_user(
     try:
         db_user = UserCrud.create(db=db, user=user_data)
     except IntegrityError as e:
-        eu.handle_create_user_integrity_exception(str(e))
+        eu.handle_users_integrity_exception(str(e))
     else:
         return u.CreateUser(data=db_user)
 

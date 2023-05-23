@@ -31,10 +31,10 @@ class PaymentCrud(Crud):
     def get_payments_for_user(cls, user_id: int) -> list[PaymentOut]:
         user_payments = execute_query(
             query="""
-                SELECT * FROM payments WHERE payments.bill_id IN (
-                    SELECT id FROM bills WHERE user_id = %(id)s
-                );
-            """,
+                    SELECT * FROM payments WHERE payments.bill_id IN (
+                        SELECT id FROM bills WHERE user_id = %(id)s
+                    );
+                """,
             params={"id": user_id},
             mapper=map_to_payment,
         )

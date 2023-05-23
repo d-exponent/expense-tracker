@@ -1,5 +1,5 @@
 from typing import Annotated
-from fastapi import APIRouter, Body, Response, Request
+from fastapi import APIRouter, Body, Response, Path
 
 from app.schema import user as u
 from app.crud.users import UserCrud
@@ -44,21 +44,24 @@ def login_with_email_password(
     )
 
 
-@router.get("/access-code")
-def login_with_access_code(db: dbSession, response: Response, request: Request):
+@router.get("/access-code/{code}")
+def login_with_access_code(
+    *,
+    db: dbSession,
+    code: Annotated[str, Path()],
+    response: Response,
+):
     """
     Login a user from the access_code passed from request header
-    - **Request Header Format** =>  key: (Access-Code), value: (access-code) from /auth/
 
     Returns the user data and access token
     """
-    otp = request.headers.get("Access-Code")
-    user = au.handle_get_user_by_otp(db, otp)
+    user = au.handle_get_user_by_otp(db, otp=code)
     au.check_otp_expired(user.otp_expires_at)
 
     to_update = au.set_otp_columns_data(verified=True)
     UserCrud.update_user_by_phone(db, user.phone, to_update)
-    access_token = au.handle_create_token_for_user(user_data=user)
+    access_token = au.handle_create_token_for_user(user)
 
     au.set_cookie_header_response(response=response, token=access_token)
     return au.get_auth_success_response(

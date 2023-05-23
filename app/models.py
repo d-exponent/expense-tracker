@@ -66,6 +66,9 @@ class Creditor(Base):
     )
 
     id = sa.Column(sa.Integer, primary_key=True)
+    owner_id = sa.Column(
+        sa.Integer, sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
     name = sa.Column(sa.String(100), nullable=False, unique=True)
     description = sa.Column(sa.String(300))
     street_address = sa.Column(sa.String)

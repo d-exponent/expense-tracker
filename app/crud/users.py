@@ -7,7 +7,7 @@ from app.models import User as UserOrm
 from app.utils.general import title_case_words
 from app.schema.user import UserCreate
 from app.utils.error_utils import RaiseHttpException
-from app.utils.error_utils import handle_create_user_integrity_exception
+from app.utils.error_utils import handle_users_integrity_exception
 
 
 class UserCrud(Crud):
@@ -49,7 +49,7 @@ class UserCrud(Crud):
         try:
             query.update(update_data)
         except IntegrityError as e:
-            handle_create_user_integrity_exception(str(e))
+            handle_users_integrity_exception(str(e))
         except (DataError, OperationalError):
             RaiseHttpException.server_error()
         else:

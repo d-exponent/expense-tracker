@@ -32,10 +32,13 @@ def get_me(me: current_user):
 
 @router.get('/profile-picture')
 async def get_my_profile_image(me: current_user):
+    if me.image_url is None:
+        eu.raise_400_exception("There is no image associated with this user")
+
     image_file = absolute_path_for_image(me.image_url)
 
     if not os.path.exists(image_file):
-        eu.RaiseHttpException.bad_request('The image does not exist')
+        eu.RaiseHttpException.server_error('The image weirdly doesn\'t exist')
 
     return FileResponse(image_file)
 
@@ -48,35 +51,36 @@ def update_me(db: dbSession, me: current_user, data: Annotated[u.UpdateMe, Body(
     try:
         user_data = data.ensure_valid_field()
     except DataError as e:
-        eu.RaiseHttpException.bad_request(str(e))
+        eu.raise_400_exception(str(e))
     else:
         return UserCrud.update_user_by_phone(db, me.phone, user_data)
 
 
 @router.patch('/profile-picture', response_model=r.DefaultResponse)
-def update_profile_image(
+def upload_profile_image(
     db: dbSession,
     me: current_user,
     image_url: Annotated[str, Depends(handle_image_upload)],
 ):
     if image_url is None:
-        eu.RaiseHttpException.bad_request('Provide an image file!')
+        eu.raise_400_exception('Provide an image file!')
 
     prev_image_url = me.image_url
     updated_me = UserCrud.update_by_id(
         db=db, id=me.id, data={"image_url": image_url}, table='users'
     )
 
-    # Delete the previous image
-    prev_image_loc = absolute_path_for_image(prev_image_url)
-    if os.path.exists(prev_image_loc):
-        try:
-            os.remove(prev_image_loc)
-        except OSError:
-            pass
+    # Delete the previous image if exists
+    if prev_image_url:
+        prev_image_loc = absolute_path_for_image(prev_image_url)
+        if os.path.exists(prev_image_loc):
+            try:
+                os.remove(prev_image_loc)
+            except OSError:
+                pass
 
     return r.DefaultResponse(
-        data=u.UserOut.from_orm(updated_me),
+        data={"image_url": updated_me.image_url},
         message='Profile image is updated successfully!',
     )
 
@@ -95,16 +99,19 @@ def update_my_password(
     - **new_password_confirm**: Same as the **new_password**
     """
 
+    if me.email is None:
+        eu.raise_400_exception("User does not have an email and password credentils")
+
     # Ensure the password is the user's password
     if not me.compare_password(password=credentials.password):
         eu.RaiseHttpException.unauthorized_with_headers("Invalid password")
 
     if credentials.new_password != credentials.new_password_confirm:
-        eu.RaiseHttpException.bad_request("The passwords do not match")
+        eu.raise_400_exception("The passwords do not match")
 
     # Ensure the new password is not the same as the old one
     if me.compare_password(password=credentials.new_password):
-        eu.RaiseHttpException.bad_request("The new password is the same as the old one")
+        eu.raise_400_exception("The new password is the same as the old one")
 
     # Update the user's password
     UserCrud.update_user_password(db, me.id, new_password=credentials.new_password)
@@ -194,7 +201,7 @@ def make_payment(
 
     # current user has no bills
     if len(bills) == 0:
-        eu.RaiseHttpException.bad_request("You currently have no bills")
+        eu.raise_400_exception("You currently have no bills")
 
     # Ensure the referenced bill belongs to the current user
     if len([bill for bill in bills if bill.id == payment.bill_id]) == 0:
@@ -205,6 +212,6 @@ def make_payment(
         res_msg = "Payment created successfully!"
         db_payment = PaymentCrud.create(db, payment)
     except CreatePaymentException as e:
-        eu.RaiseHttpException.bad_request(str(e))
+        eu.raise_400_exception(str(e))
     else:
         return r.DefaultResponse(message=res_msg, data=db_payment)

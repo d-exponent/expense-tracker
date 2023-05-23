@@ -26,11 +26,9 @@ class Settings(BaseSettings):
     twillo_account_sid: str
     twillo_from_phone_number: str
 
-    def get_sqlalchemy_connection_url(self):
-        user = self.db_username
-        password = self.db_password
-        db = self.db_name
-        return f"postgresql://{user}:{password}@localhost:5432/{db}"
+    @property
+    def sqlalchemy_connection_url(self):
+        return f"postgresql://{self.db_username}:{self.db_password}@localhost:5432/{self.db_name}"
 
 
 settings = Settings(_env_file=".env")

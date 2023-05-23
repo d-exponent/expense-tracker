@@ -10,6 +10,6 @@ def handle_make_bill(db: dbSession, bill: dict):
     try:
         new_bill = BillCrud.create(db, bill=bp.BillCreate(**bill))
     except IntegrityError as e:
-        eu.handle_create_bill_integrity_exception((str(e)))
+        eu.handle_bills_integrity_exception((str(e)))
     else:
         return r.DefaultResponse(data=bp.BillOut.from_orm(new_bill))

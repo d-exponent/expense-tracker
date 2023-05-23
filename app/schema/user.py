@@ -22,7 +22,7 @@ password_reg = (
 
 
 class UserPassword(BaseModel):
-    password: constr(regex=password_reg)
+    password: constr(regex=password_reg) = None
 
 
 class UserBase(BaseModel):
@@ -41,9 +41,8 @@ class UpdateMe(Update):
     last_name: constr(max_length=40, strip_whitespace=True) = None
 
 
-class UpdateEmail:
+class UpdateEmail(UserPassword):
     email: EmailStr | None
-    password: str = None
 
 
 class UpdatePhone(BaseModel):

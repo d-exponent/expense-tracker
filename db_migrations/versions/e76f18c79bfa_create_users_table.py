@@ -8,7 +8,6 @@ Create Date: 2023-04-04 15:11:24.572980
 from alembic import op
 from sqlalchemy.sql.expression import text, func
 
-# from sqlalchemy.sql import column, func
 import sqlalchemy as sa
 
 
@@ -22,7 +21,7 @@ depends_on = None
 def upgrade():
     op.create_table(
         "users",
-        sa.Column("my_id", sa.Integer, primary_key=True),
+        sa.Column("id", sa.Integer, primary_key=True),
         sa.Column("first_name", sa.String(length=40), nullable=False),
         sa.Column("middle_name", sa.String(40)),
         sa.Column("last_name", sa.String(length=40), nullable=False),

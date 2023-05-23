@@ -14,7 +14,7 @@ from app.utils.custom_exceptions import DataError
 router = APIRouter(
     prefix="/creditors",
     tags=["creditors"],
-    dependencies=[auth.current_active_user],
+    # dependencies=[auth.current_active_user],
 )
 
 
@@ -23,7 +23,7 @@ def create_creditor(db: dbSession, creditor: Annotated[cr.CreditorCreate, Body()
     try:
         creditor = CreditorCrud.create(db, creditor)
     except IntegrityError as e:
-        eu.handle_create_creditor_integrity_exception(str(e))
+        eu.handle_creditors_integrity_exception(str(e))
     else:
         return DefaultResponse(
             data=creditor, message="Creditor is created successfully"

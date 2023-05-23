@@ -11,6 +11,7 @@ from app.utils.custom_exceptions import ImageTooSmallException
 
 def absolute_path_for_image(image_name):
     """Returns an absolute path to the image in the /static/images/users/ dir"""
+
     workdir = os.path.abspath(os.getcwd())
     return os.path.join(workdir, "app", "static", "images", 'users', image_name)
 
@@ -38,7 +39,7 @@ def store_image_file(file: UploadFile, location: str = 'users'):
     Stores an image file in app/static/images/ directory
 
     Args:
-    file (UploadFile) : The file to stored
+    file (UploadFile) : The file to uploaded
     location (string) : The dir in the /static/images/ directory to store the image
         If the directory does not exist, it will be created
 

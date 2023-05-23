@@ -19,9 +19,11 @@ class CreditorCreate(CreditorCreateOptional):
     name: constr(strip_whitespace=True, max_length=100)
     city: constr(strip_whitespace=True, max_length=40)
     state: constr(strip_whitespace=True, max_length=40)
+    owner_id: int
 
 
 class CreditorUpdate(CreditorCreateOptional, Update):
+    email: EmailStr = None
     name: constr(strip_whitespace=True, max_length=100) = None
     city: constr(strip_whitespace=True, max_length=40) = None
     state: constr(strip_whitespace=True, max_length=40) = None

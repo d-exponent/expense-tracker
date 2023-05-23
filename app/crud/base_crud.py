@@ -59,7 +59,7 @@ class Crud:
 
         except IntegrityError as e:
             if 'users_' in str(e):  # An error in updating users table
-                eu.handle_create_user_integrity_exception(str(e))
+                eu.handle_users_integrity_exception(str(e))
             else:
                 msg = 'The data violates set constraints. Check the data and try again'
                 eu.RaiseHttpException.bad_request(msg)

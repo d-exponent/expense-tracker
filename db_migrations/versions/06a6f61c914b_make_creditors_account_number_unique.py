@@ -17,10 +17,10 @@ depends_on = None
 def upgrade() -> None:
     execute_raw_sql(
         """
-        ALTER TABLE creditors 
+        ALTER TABLE creditors
         ADD CONSTRAINT account_number_key UNIQUE (account_number);
         """
-)
+    )
 
 
 def downgrade() -> None:
@@ -29,4 +29,3 @@ def downgrade() -> None:
         ALTER TABLE creditors DROP CONSTRAINT account_number_key;
         """
     )
-

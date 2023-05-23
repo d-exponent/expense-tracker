@@ -43,15 +43,17 @@ async def sign_up_user(
     try:
         db_user = UserCrud.create(db=db, user=u.UserSignUp(**user_data))
     except IntegrityError as e:
-        eu.handle_create_user_integrity_exception(str(e))
+        eu.handle_users_integrity_exception(str(e))
 
     user_full_name = get_user_full_name(db_user)
     email_success = True
     sms_success = True
-    tasks = [
+    tasks = [SMSMessenger(db_user.phone, user_full_name).send_welcome(user_otp)]
+
+    # Add email messenger coroutine when the user has provids an email address
+    db_user.email and tasks.append(
         EmailMessenger(db_user.email, user_full_name).send_welcome(user_otp),
-        SMSMessenger(db_user.phone, user_full_name).send_welcome(user_otp),
-    ]
+    )
 
     for task in asyncio.as_completed(tasks):
         try:
@@ -145,7 +147,7 @@ def update_phone_email(
     """
     User can update either of or both phone and email
     If the email and/or phone provided is the same as already in the database, no changes will be made
-    -- **Access-Code**: Header must be set with the otp received by the user from auth/get_otp route.
+    -- **Access-Code**: Header must be set with the code received by the user from GET auth/access-code route.
     """
 
     if phone is None and email is None:
@@ -174,7 +176,7 @@ def update_phone_email(
     try:
         UserCrud.update_user_by_phone(db, user.phone, to_update)
     except IntegrityError as e:
-        eu.handle_create_user_integrity_exception(str(e))
+        eu.handle_users_integrity_exception(str(e))
     else:
         return DefaultResponse(message=au.update_credentials_response_msg(phone, email))
 

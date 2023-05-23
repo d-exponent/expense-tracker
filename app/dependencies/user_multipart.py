@@ -49,7 +49,7 @@ def handle_user_multipart_data_create(
         middle_name=title_case_words(middle_name) if middle_name else None,
         phone=phone,
         email=email.lower() if email else None,
-        password=password,
+        password=password if password else None,
         image_url=image_url,
         role=role,
     )

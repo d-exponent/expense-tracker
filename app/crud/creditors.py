@@ -1,14 +1,14 @@
 from sqlalchemy.orm import Session
 
 from app.crud.base_crud import Crud
-from app.models import Creditor as CreditorOrm
+from app.models import Creditor
 from app.schema.creditor import CreditorCreate
 from app.utils.general import title_case_words
 from app.utils.raw_sql_operators import execute_query, map_to_creditor
 
 
 class CreditorCrud(Crud):
-    orm_model = CreditorOrm
+    orm_model = Creditor
 
     @classmethod
     def process(cls, creditor: CreditorCreate):
@@ -40,13 +40,7 @@ class CreditorCrud(Crud):
     @classmethod
     def get_creditors_for_user(cls, user_id: int):
         user_creditors = execute_query(
-            query="""
-                    SELECT * FROM creditors WHERE creditors.id IN (
-                        SELECT bills.creditor_id
-                        FROM users
-                        JOIN bills ON bills.user_id = %(id)s
-                    );
-                """,
+            query="SELECT * FROM creditors WHERE owner_id = %(id)s;",
             params={"id": user_id},
             mapper=map_to_creditor,
         )

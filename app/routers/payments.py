@@ -13,7 +13,6 @@ from app.crud.payments import PaymentCrud, CreatePaymentException
 
 
 allow_staff_admin = [Depends(auth.restrict_to("staff", "admin"))]
-allow_only_user = [Depends(auth.restrict_to("user"))]
 
 
 class PaymentWithOwnerBill(bp.PaymentOut):
@@ -37,7 +36,11 @@ def create_payment(db: dbSession, payment_data: Annotated[bp.PaymentCreate, Body
         eu.RaiseHttpException.bad_request(str(e))
 
 
-@router.get("/", response_model=list[bp.PaymentOut], dependencies=allow_staff_admin)
+@router.get(
+    "/",
+    response_model=list[bp.PaymentOut],
+    dependencies=[Depends(auth.restrict_to("staff", "admin"))],
+)
 def get_payments(
     db: dbSession, skip: int = Query(default=0), limit: int = Query(default=100)
 ):

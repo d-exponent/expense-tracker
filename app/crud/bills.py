@@ -1,14 +1,14 @@
 from sqlalchemy.orm import Session
 
 from app.crud.base_crud import Crud
-from app.models import Bill as BillOrm
+from app.models import Bill
 from app.schema import bill_payment as bp
 from app.utils.custom_exceptions import CreatePaymentException
 from app.utils.error_utils import RaiseHttpException
 
 
 class BillCrud(Crud):
-    orm_model = BillOrm
+    orm_model = Bill
 
     @classmethod
     def create(cls, db: Session, bill: bp.BillCreate) -> bp.BillOutAllInfo:
@@ -30,12 +30,12 @@ class BillCrud(Crud):
         to_update = {}
         if payment.issuer == "user":
             to_update["total_paid_amount"] = add_payment_amount(
-                payment.amount, bill_amount=bill.total_paid_amount
+                payment.amount, bill.total_paid_amount
             )
 
         if payment.issuer == "creditor":
             to_update["total_credit_amount"] = add_payment_amount(
-                payment.amount, bill_amount=bill.total_credit_amount
+                payment.amount, bill.total_credit_amount
             )
 
         query.update(to_update)
@@ -46,7 +46,7 @@ class BillCrud(Crud):
 
     @classmethod
     def delete_by_id(cls, db: Session, id: int):
-        bill = super().get_by_id(db, id)
+        bill: Bill = super().get_by_id(db, id)
 
         if bill is None:
             RaiseHttpException.not_found("This bill does not exist")

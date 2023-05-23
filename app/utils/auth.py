@@ -108,7 +108,7 @@ def authenticate_password(plain_password: str, hashed_password: bytes) -> bool:
 
 
 def handle_get_user_by_otp(db: Session, otp: str):
-    from app.crud.users import UserCrud  # Circular Import issues
+    from app.crud.users import UserCrud  # Last resort to Circular-Import issues
 
     if otp is None:
         RaiseHttpException.bad_request("Provide the user's otp")
