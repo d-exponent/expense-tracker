@@ -11,7 +11,7 @@ class BillCrud(Crud):
     orm_model = Bill
 
     @classmethod
-    def create(cls, db: Session, bill: bp.BillCreate) -> bp.BillOutAllInfo:
+    def create(cls, db: Session, bill: bp.BillCreate) -> Bill:
         return super().create(db, data=bill)
 
     @classmethod
@@ -41,7 +41,7 @@ class BillCrud(Crud):
         query.update(to_update)
 
     @classmethod
-    def get_bills_for_user(cls, db: Session, user_id: int):
+    def get_bills_for_user(cls, db: Session, user_id: int) -> list[Bill] | list:
         return db.query(cls.orm_model).filter(cls.orm_model.user_id == user_id).all()
 
     @classmethod

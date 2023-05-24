@@ -30,7 +30,7 @@ class CreditorCrud(Crud):
         return creditor
 
     @classmethod
-    def create(cls, db: Session, creditor: CreditorCreate):
+    def create(cls, db: Session, creditor: CreditorCreate) -> Creditor:
         return super().create(db, data=cls.process(creditor))
 
     @classmethod

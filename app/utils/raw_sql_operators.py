@@ -2,13 +2,13 @@ from typing import Callable
 from psycopg2.errors import OperationalError, DatabaseError
 
 from app.database.psycopg_config import get_connection
-from app.schema.creditor import CreditorOut
+from app.schema.creditor import MyCreditorOut
 from app.schema.bill_payment import PaymentOut
 from app.utils.custom_exceptions import QueryExecError
 
 
-def map_to_creditor(result: tuple):
-    return CreditorOut(
+def map_to_creditor(result: tuple) -> MyCreditorOut:
+    return MyCreditorOut(
         id=result[0],
         name=result[1],
         description=result[2],
@@ -23,7 +23,7 @@ def map_to_creditor(result: tuple):
     )
 
 
-def map_to_payment(result: tuple):
+def map_to_payment(result: tuple) -> PaymentOut:
     return PaymentOut(
         id=result[0],
         bill_id=result[1],

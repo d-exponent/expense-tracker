@@ -14,7 +14,7 @@ from app.utils.custom_exceptions import DataError
 router = APIRouter(
     prefix="/creditors",
     tags=["creditors"],
-    # dependencies=[auth.current_active_user],
+    dependencies=[auth.current_active_user],
 )
 
 
@@ -83,7 +83,7 @@ def update_creditor(
 
 
 @router.delete(
-    "/{my_id}",
+    "/{id}",
     status_code=204,
     dependencies=[Depends(auth.restrict_to("staff", "admin"))],
 )

@@ -101,8 +101,8 @@ def handle_creditors_integrity_exception(error_message: str):
         raise_400_exception(
             "An account number can only be linked with one phone number"
         )
-    # Unlikely to be needed as createCreditor pydantic schema ensures an owner_id value
-    #   if "null value in column \"owner_id\"" in error_message:
-    #       raise_400_exception("Provide the owner_id (user id) for this creditor")
+
+    if "null value in column \"owner_id\"" in error_message:
+        raise_400_exception("Provide the owner_id (user id) for this creditor")
 
     RaiseHttpException.server_error()

@@ -13,13 +13,24 @@ class CreditorCreateOptional(BaseModel):
     account_number: str = None
 
 
-class CreditorCreate(CreditorCreateOptional):
+class MyCreditorCreate(CreditorCreateOptional):
     phone: constr(max_length=25, regex=e_164_phone_regex, strip_whitespace=True)
     email: EmailStr = None
     name: constr(strip_whitespace=True, max_length=100)
     city: constr(strip_whitespace=True, max_length=40)
     state: constr(strip_whitespace=True, max_length=40)
+
+
+class CreditorOwner(BaseModel):
     owner_id: int
+
+
+class MyCreditorOut(MyCreditorCreate):
+    id: int
+
+
+class CreditorCreate(MyCreditorCreate, CreditorOwner):
+    pass
 
 
 class CreditorUpdate(CreditorCreateOptional, Update):
@@ -30,9 +41,7 @@ class CreditorUpdate(CreditorCreateOptional, Update):
     phone: constr(max_length=25, regex=e_164_phone_regex, strip_whitespace=True) = None
 
 
-class CreditorOut(CreditorCreate):
-    id: int
-
+class CreditorOut(MyCreditorOut, CreditorOwner):
     class Config:
         orm_mode = True
 

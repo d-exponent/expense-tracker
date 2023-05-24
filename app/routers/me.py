@@ -1,6 +1,7 @@
 import os
 from typing import Annotated
 from fastapi.responses import FileResponse
+from sqlalchemy.exc import IntegrityError
 from fastapi import APIRouter, Body, Path, Depends
 
 from app.crud.users import UserCrud
@@ -9,7 +10,7 @@ from app.crud.payments import PaymentCrud, CreatePaymentException
 from app.crud.creditors import CreditorCrud
 
 from app.schema import user as u
-from app.schema import response as r, bill_payment as bp
+from app.schema import response as r, bill_payment as bp, creditor as c
 from app.dependencies.auth import current_active_user
 from app.dependencies.user_multipart import handle_image_upload
 
@@ -134,7 +135,7 @@ def delete_me(db: dbSession, me: current_user):
 @router.get("/creditors", response_model=r.DefaultResponse)
 def get_my_creditors(me: current_user):
     try:
-        creditors = CreditorCrud.get_creditors_for_user(user_id=me.id)
+        creditors = CreditorCrud.get_creditors_for_user(me.id)
     except QueryExecError:
         eu.RaiseHttpException.server_error("Error fetching your creditors.")
     else:
@@ -146,13 +147,40 @@ def get_my_creditors(me: current_user):
 #  ----------------------------------- MY BILLS -----------------------------------
 
 
+class MyCreditorBillCreate(c.MyCreditorCreate):
+    total_credit_amount: float = 0.00
+    total_paid_amount: float = 0.00
+
+
 @router.post("/bills", response_model=r.DefaultResponse)
 def create_my_bill(
-    db: dbSession, me: current_user, bill: Annotated[bp.MyBillCreate, Body()]
+    db: dbSession,
+    me: current_user,
+    bill_data: Annotated[bp.MyBillCreate | MyCreditorBillCreate, Body()],
 ):
-    my_bill = bill.__dict__
-    my_bill |= {"user_id": me.id}
-    return handle_make_bill(db, bill=my_bill)
+    bill = {}
+    if isinstance(bill_data, MyCreditorBillCreate):
+        creditor = bill_data.copy().__dict__
+        creditor["owner_id"] = me.id
+        creditor.pop("total_credit_amount") and creditor.pop("total_paid_amount")
+
+        try:
+            db_creditor = CreditorCrud.create(db, c.CreditorCreate(**creditor))
+        except IntegrityError as e:
+            eu.handle_creditors_integrity_exception(str(e))
+        else:
+            bill = {
+                "user_id": me.id,
+                "total_credit_amount": bill_data.total_credit_amount,
+                "total_paid_amount": bill_data.total_paid_amount,
+                "creditor_id": db_creditor.id,
+            }
+
+    elif isinstance(bill_data, bp.MyBillCreate):
+        bill = bill_data.__dict__
+        bill["user_id"] = me.id
+
+    return handle_make_bill(db, bill)
 
 
 @router.get("/bills", response_model=r.DefaultResponse)
